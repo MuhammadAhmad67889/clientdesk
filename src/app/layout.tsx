@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import AuthNav from "../components/AuthNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  description: "ClientDesk — a single-user freelance client and invoice manager. Demo data is stored in your browser.",
+  description: "ClientDesk — a freelance client and invoice manager with accounts and a database.",
   title: "ClientDesk",
 };
 
@@ -16,11 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link className="brand" href="/">
               ClientDesk
             </Link>
-            <div className="navlinks">
-              <Link href="/">Dashboard</Link>
-              <Link href="/clients">Clients</Link>
-              <Link href="/invoices">Invoices</Link>
-            </div>
+            <AuthNav />
           </div>
         </nav>
         <main className="container">{children}</main>

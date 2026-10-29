@@ -9,6 +9,8 @@ a { color: var(--accent); }
 .navlinks { display: flex; gap: 14px; margin-left: auto; flex-wrap: wrap; }
 .navlinks a { color: #dbeafe; text-decoration: none; font-weight: 600; }
 .navlinks a:hover { text-decoration: underline; }
+.nav-email { color: #dbeafe; font-size: .85rem; }
+.nav-logout { background: transparent; color: #fff; border-color: #4b5563; padding: 4px 10px; }
 h1 { font-size: 1.7rem; margin: 24px 0 6px; }
 .lead { color: var(--muted); margin-top: 0; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 18px 0; }
