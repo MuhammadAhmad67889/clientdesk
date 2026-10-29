@@ -1,0 +1,66 @@
+// ClientDesk database schema.
+// SQLite locally (DATABASE_URL=file:./dev.db). Portable types only
+// (String ids, DateTime, Float) so switching the provider to Postgres
+// later is plausible. Postgres has NOT been tested with this schema.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  createdAt    DateTime  @default(now())
+  email        String    @unique
+  id           String    @id @default(cuid())
+  passwordHash String
+  clients      Client[]
+  invoices     Invoice[]
+  sessions     Session[]
+}
+
+model Session {
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@index([userId])
+}
+
+model Client {
+  company   String?
+  createdAt DateTime @default(now())
+  email     String?
+  id        String   @id @default(cuid())
+  name      String
+  notes     String?
+  phone     String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  invoices  Invoice[]
+
+  @@index([userId])
+}
+
+model Invoice {
+  amount      Float
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId    String
+  createdAt   DateTime @default(now())
+  description String
+  dueDate     String
+  id          String   @id @default(cuid())
+  issuedDate  String
+  status      String   @default("unpaid")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+
+  @@index([userId])
+  @@index([clientId])
+}
