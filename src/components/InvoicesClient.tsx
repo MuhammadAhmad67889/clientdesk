@@ -25,6 +25,7 @@ export default function InvoicesClient({
   const [dueDate, setDueDate] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const today = todayIso();
   const filtered = useMemo(
@@ -39,6 +40,8 @@ export default function InvoicesClient({
     const errs = validateInvoice({ amount: parsedAmount, clientId, description, dueDate });
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
+    if (saving) return;
+    setSaving(true);
     const res = await fetch("/api/invoices", {
       body: JSON.stringify({
         amount: Math.round(parsedAmount * 100) / 100,
@@ -49,6 +52,7 @@ export default function InvoicesClient({
       headers: { "Content-Type": "application/json" },
       method: "POST",
     });
+    setSaving(false);
     if (res.status === 401) {
       window.location.href = "/login";
       return;
@@ -130,7 +134,7 @@ export default function InvoicesClient({
             <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             {errors.dueDate && <span className="error">{errors.dueDate}</span>}
           </label>
-          <div className="actions full"><button className="primary" type="submit">Add invoice</button></div>
+          <div className="actions full"><button className="primary" disabled={saving} type="submit">{saving ? "Saving…" : "Add invoice"}</button></div>
         </form>
       )}
 

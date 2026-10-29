@@ -13,9 +13,11 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
+  const [notes, setNotes] = useState("");
   const [editing, setEditing] = useState<Client | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const filtered = useMemo(() => filterClients(clients, query), [clients, query]);
 
@@ -24,10 +26,13 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
     const errs = validateClient({ email, name });
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
+    if (saving) return;
+    setSaving(true);
     const payload = {
       company: company.trim() || undefined,
       email: email.trim() || undefined,
       name: name.trim(),
+      notes: notes.trim() || undefined,
       phone: phone.trim() || undefined,
     };
     const res = await fetch(editing ? `/api/clients/${editing.id}` : "/api/clients", {
@@ -35,6 +40,7 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
       headers: { "Content-Type": "application/json" },
       method: editing ? "PUT" : "POST",
     });
+    setSaving(false);
     if (res.status === 401) {
       window.location.href = "/login";
       return;
@@ -49,12 +55,12 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
       editing ? prev.map((c) => (c.id === saved.id ? saved : c)) : [...prev, saved],
     );
     setEditing(null);
-    setName(""); setEmail(""); setCompany(""); setPhone(""); setErrors({});
+    setName(""); setEmail(""); setCompany(""); setPhone(""); setNotes(""); setErrors({});
   }
 
   function startEdit(c: Client) {
     setEditing(c);
-    setName(c.name); setEmail(c.email ?? ""); setCompany(c.company ?? ""); setPhone(c.phone ?? "");
+    setName(c.name); setEmail(c.email ?? ""); setCompany(c.company ?? ""); setPhone(c.phone ?? ""); setNotes(c.notes ?? "");
     setErrors({});
   }
 
@@ -88,9 +94,12 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
         <label>Phone
           <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+92 300 111 2222" />
         </label>
+        <label className="full">Notes
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anything worth remembering about this client" rows={2} />
+        </label>
         <div className="actions full">
-          <button className="primary" type="submit">{editing ? "Save changes" : "Add client"}</button>
-          {editing && <button type="button" onClick={() => { setEditing(null); setName(""); setEmail(""); setCompany(""); setPhone(""); }}>Cancel edit</button>}
+          <button className="primary" disabled={saving} type="submit">{saving ? "Saving…" : editing ? "Save changes" : "Add client"}</button>
+          {editing && <button type="button" onClick={() => { setEditing(null); setName(""); setEmail(""); setCompany(""); setPhone(""); setNotes(""); }}>Cancel edit</button>}
         </div>
       </form>
 
@@ -107,7 +116,10 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
             <tbody>
               {filtered.map((c) => (
                 <tr key={c.id}>
-                  <td>{c.name}</td><td>{c.email ?? "—"}</td><td>{c.company ?? "—"}</td><td>{c.phone ?? "—"}</td>
+                  <td>
+                    {c.name}
+                    {c.notes && <><br /><span className="hint">{c.notes}</span></>}
+                  </td><td>{c.email ?? "—"}</td><td>{c.company ?? "—"}</td><td>{c.phone ?? "—"}</td>
                   <td>
                     <div className="actions">
                       <button onClick={() => startEdit(c)}>Edit</button>

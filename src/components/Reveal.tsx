@@ -17,17 +17,17 @@ export default function Reveal({ children }: { children: React.ReactNode }) {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     gsap.registerPlugin(ScrollTrigger);
     const ctx = gsap.context(() => {
-      gsap.utils.toArray<HTMLElement>("[data-reveal]").forEach((el, i) => {
+      // Selector is scoped to this component, so two Reveal blocks on a
+      // page never animate each other's elements.
+      const select = gsap.utils.selector(ref);
+      select<HTMLElement>("[data-reveal]").forEach((el, i) => {
         gsap.from(el, {
+          delay: Math.min(i, 4) * 0.03,
           duration: 0.5,
           ease: "power2.out",
           opacity: 0,
           scrollTrigger: { once: true, start: "top 92%", trigger: el },
-          stagger: 0.06,
           y: 14,
-          // Keep per-element delay small; stagger above is per-batch only when
-          // elements share a trigger, so also offset by index within a group.
-          delay: Math.min(i, 4) * 0.03,
         });
       });
     }, ref);
