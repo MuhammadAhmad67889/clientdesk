@@ -24,6 +24,11 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# sqlite databases (local only, never commit)
+*.db
+*.db-journal
+prisma/dev.db*
+
 # vercel
 .vercel
 
