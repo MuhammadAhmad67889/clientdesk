@@ -11,12 +11,14 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   const email = typeof body?.email === "string" ? body.email : undefined;
   const company = typeof body?.company === "string" ? body.company : undefined;
   const phone = typeof body?.phone === "string" ? body.phone : undefined;
+  const notes = typeof body?.notes === "string" ? body.notes : undefined;
   const errors = validateClient({ email, name });
   if (Object.keys(errors).length > 0) return NextResponse.json({ errors }, { status: 400 });
   const updated = await updateClient(user.id, id, {
     company: company?.trim() || undefined,
     email: email?.trim() || undefined,
     name: name.trim(),
+    notes: notes?.trim() || undefined,
     phone: phone?.trim() || undefined,
   });
   if (!updated) return NextResponse.json({ error: "Client not found." }, { status: 404 });
