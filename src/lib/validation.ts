@@ -28,10 +28,20 @@ export function validateInvoice(input: {
   }
   if (!input.dueDate) {
     errors.dueDate = "Due date is required.";
-  } else if (!/^\d{4}-\d{2}-\d{2}$/.test(input.dueDate) || Number.isNaN(Date.parse(input.dueDate))) {
+  } else if (!isValidDate(input.dueDate)) {
     errors.dueDate = "Due date must be a valid date.";
   }
   return errors;
+}
+
+export function isValidDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 }
 
 export function isValidEmail(email: string): boolean {

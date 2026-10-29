@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isValidEmail, validateClient, validateInvoice } from "./validation";
+import { isValidDate, isValidEmail, validateClient, validateInvoice } from "./validation";
 
 describe("validateClient", () => {
   it("requires a name", () => {
@@ -28,6 +28,18 @@ describe("validateInvoice", () => {
     expect(validateInvoice({ ...valid, description: " " }).description).toBeDefined();
     expect(validateInvoice({ ...valid, dueDate: "" }).dueDate).toBeDefined();
     expect(validateInvoice({ ...valid, dueDate: "not-a-date" }).dueDate).toBeDefined();
+  });
+});
+
+describe("isValidDate", () => {
+  it("rejects dates that do not exist, like 30 February", () => {
+    // Date.parse rolls 2026-02-30 over to 2 March, so this has to be
+    // checked against the calendar, not just parsed.
+    expect(isValidDate("2026-02-30")).toBe(false);
+    expect(isValidDate("2026-13-01")).toBe(false);
+    expect(isValidDate("2026-02-28")).toBe(true);
+    expect(isValidDate("2024-02-29")).toBe(true);
+    expect(validateInvoice({ amount: 100, clientId: "c1", description: "Work", dueDate: "2026-02-30" }).dueDate).toBeDefined();
   });
 });
 

@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
-import { hashToken, SESSION_COOKIE, verifySessionCookie } from "./auth";
+import { hashEquals, hashToken, SESSION_COOKIE, verifySessionCookie } from "./auth";
 import { getPrisma } from "./prisma";
 import { seedData, todayIso } from "./invoices";
 import type { Client, Invoice } from "./types";
@@ -71,8 +71,11 @@ export async function getSessionUser(
       include: { user: true },
       where: { id: parsed.sessionId },
     });
-    if (!session || session.expiresAt <= new Date()) return null;
-    if (session.tokenHash !== hashToken(parsed.token)) return null;
+    if (!session || !hashEquals(session.tokenHash, hashToken(parsed.token))) return null;
+    if (session.expiresAt <= new Date()) {
+      await db.session.delete({ where: { id: session.id } }).catch(() => undefined);
+      return null;
+    }
     return { email: session.user.email, id: session.user.id };
   } catch {
     return null;
@@ -108,14 +111,29 @@ export async function updateClient(
 ): Promise<Client | null> {
   const existing = await db.client.findFirst({ where: { id, userId } });
   if (!existing) return null;
-  return toClient(await db.client.update({ data: input, where: { id } }));
+  // Undefined means "cleared in the form" here, so store null instead of
+  // leaving the old value in place (Prisma skips undefined fields).
+  return toClient(await db.client.update({
+    data: {
+      company: input.company ?? null,
+      email: input.email ?? null,
+      name: input.name,
+      notes: input.notes ?? null,
+      phone: input.phone ?? null,
+    },
+    where: { id },
+  }));
 }
 
 export async function deleteClient(userId: string, id: string, db: PrismaClient = getPrisma()): Promise<boolean> {
   const existing = await db.client.findFirst({ where: { id, userId } });
   if (!existing) return false;
-  await db.invoice.deleteMany({ where: { clientId: id, userId } });
-  await db.client.delete({ where: { id } });
+  // One transaction: if the client delete fails, its invoices must not
+  // already be gone.
+  await db.$transaction([
+    db.invoice.deleteMany({ where: { clientId: id, userId } }),
+    db.client.delete({ where: { id } }),
+  ]);
   return true;
 }
 
@@ -188,7 +206,11 @@ export async function seedDemoForUser(userId: string, db: PrismaClient = getPris
 }
 
 export async function resetDemoForUser(userId: string, db: PrismaClient = getPrisma()): Promise<void> {
-  await db.invoice.deleteMany({ where: { userId } });
-  await db.client.deleteMany({ where: { userId } });
-  await seedDemoForUser(userId, db);
+  // All or nothing: a failed reseed must not leave the user with nothing.
+  // The transaction client has the same delegate methods as PrismaClient.
+  await db.$transaction(async (tx) => {
+    await tx.invoice.deleteMany({ where: { userId } });
+    await tx.client.deleteMany({ where: { userId } });
+    await seedDemoForUser(userId, tx as unknown as PrismaClient);
+  });
 }

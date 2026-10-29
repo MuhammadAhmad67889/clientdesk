@@ -42,6 +42,11 @@ describe("signSessionCookie / verifySessionCookie", () => {
     expect(verifySessionCookie(undefined, SECRET)).toBeNull();
     expect(verifySessionCookie("", SECRET)).toBeNull();
   });
+
+  it("rejects a cookie when no secret is available instead of throwing", () => {
+    const cookie = signSessionCookie("sess-1", "tok-abc", SECRET);
+    expect(verifySessionCookie(cookie, "")).toBeNull();
+  });
 });
 
 describe("validateCredentials", () => {

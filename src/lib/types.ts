@@ -20,11 +20,6 @@ export interface Invoice {
   status: InvoiceStatus;
 }
 
-export interface StoreData {
-  clients: Client[];
-  invoices: Invoice[];
-}
-
 export type InvoiceFilter = "all" | "paid" | "unpaid" | "overdue";
 
 export interface Totals {

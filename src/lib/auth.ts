@@ -46,6 +46,10 @@ export function hashToken(token: string): string {
   return createHmac("sha256", getAuthSecret()).update(token).digest("hex");
 }
 
+export function hashEquals(aHex: string, bHex: string): boolean {
+  return safeEqualHex(aHex, bHex);
+}
+
 /** Random session token (never stored in plaintext; only its hash is stored). */
 export function newSessionToken(): string {
   return randomBytes(32).toString("hex");
@@ -64,14 +68,16 @@ export function signSessionCookie(sessionId: string, token: string, secret = get
 
 export function verifySessionCookie(
   value: string | undefined | null,
-  secret = getAuthSecret(),
+  secret?: string,
 ): { sessionId: string; token: string } | null {
   if (!value) return null;
+  const key = secret ?? process.env.AUTH_SECRET;
+  if (!key) return null;
   const dot = value.lastIndexOf(".");
   if (dot <= 0) return null;
   const payload = value.slice(0, dot);
   const sig = value.slice(dot + 1);
-  const expected = createHmac("sha256", secret).update(payload).digest("hex");
+  const expected = createHmac("sha256", key).update(payload).digest("hex");
   if (!safeEqualHex(sig, expected)) return null;
   try {
     const decoded = Buffer.from(payload, "base64url").toString("utf8");
