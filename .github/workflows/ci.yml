@@ -11,10 +11,24 @@ jobs:
     strategy:
       matrix:
         node-version: [20, 22]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: clientdesk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
-      # Test-only values. The SQLite file is created by migrate deploy;
-      # AUTH_SECRET here is a dummy value used only for CI tests.
-      DATABASE_URL: file:./test.db
+      # Test-only values. AUTH_SECRET here is a dummy value used only for CI tests.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/clientdesk
+      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/clientdesk
       AUTH_SECRET: ci-test-only-dummy-secret-do-not-use-in-production
     steps:
       - uses: actions/checkout@v4
