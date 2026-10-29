@@ -16,12 +16,14 @@ export async function POST(req: NextRequest) {
   const email = typeof body?.email === "string" ? body.email : undefined;
   const company = typeof body?.company === "string" ? body.company : undefined;
   const phone = typeof body?.phone === "string" ? body.phone : undefined;
+  const notes = typeof body?.notes === "string" ? body.notes : undefined;
   const errors = validateClient({ email, name });
   if (Object.keys(errors).length > 0) return NextResponse.json({ errors }, { status: 400 });
   const client = await createClient(user.id, {
     company: company?.trim() || undefined,
     email: email?.trim() || undefined,
     name: name.trim(),
+    notes: notes?.trim() || undefined,
     phone: phone?.trim() || undefined,
   });
   return NextResponse.json(client, { status: 201 });
