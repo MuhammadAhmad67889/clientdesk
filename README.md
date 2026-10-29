@@ -1,114 +1,127 @@
 # ClientDesk
 
-I built this because I kept losing track of freelance work in spreadsheets. ClientDesk
-is a small client and invoice manager: you sign up, add clients, add invoices, and see
-at a glance what is paid, unpaid, and overdue. Each account only sees its own data.
+I kept losing track of freelance work in spreadsheets. Who owed what, what was
+already paid, what was overdue — it was all over the place. So I built this
+for myself, and kept it small on purpose.
 
-I am Muhammad Ahmad, a web developer in Rawalpindi / Islamabad, open to remote work.
-muhammadahmad.codes@gmail.com
+ClientDesk is a client and invoice manager. You sign up, add your clients,
+add invoices, and you can see at a glance what is paid, unpaid, and overdue.
+Each account only sees its own stuff. That's it, really.
 
-## What it does
+I'm Muhammad Ahmad, a web developer in Rawalpindi / Islamabad, open to
+remote work. muhammadahmad.codes@gmail.com
 
-Sign up and log in with an email and password (at least 8 characters). Passwords are
-hashed with scrypt, sessions live in the database and are sent as an httpOnly cookie.
-There is no OAuth and no demo login.
+Built in October 2026, mostly with Next.js and TypeScript. I was learning
+Prisma and auth as I went, so some parts are cleaner than others.
 
-The dashboard shows total outstanding, total paid, how much is overdue, and your recent
-invoices. The stat cards fade in a little as you scroll (GSAP + ScrollTrigger). If you
-have reduced motion turned on, there is no animation at all, and nothing is hidden if
-the animation fails to load.
+## What you can do
 
-Clients can be added, edited, searched, and deleted. Deleting a client deletes its
-invoices too. A client can also have a short note, which shows under their name.
+Sign up with an email and a password (8 characters minimum). Passwords are
+hashed, sessions are stored in the database and sent back as an httpOnly
+cookie. No Google login or anything like that, and no demo account — you
+have to make your own.
 
-Invoices can be filtered by paid, unpaid, or overdue, and searched by description or
-client. Overdue just means unpaid and past the due date. You can mark an invoice paid
-or unpaid, delete it, export the filtered list as CSV, or print the list.
+On the dashboard you get your totals: outstanding, paid, overdue, and your
+recent invoices. The stat cards fade in a bit as you scroll. I used GSAP
+for that. Turn on reduced motion and it just doesn't animate. If GSAP
+fails to load, nothing disappears, the page still works.
 
-New accounts get three demo clients and five demo invoices so the pages are not empty
-when you first log in. The demo dates are set relative to today, so one invoice is
-always overdue. "Reset demo data" on the dashboard wipes your clients and invoices and
-puts the demo ones back. Careful with that button, it deletes your real entries too.
+Add clients, edit them, search them, delete them. If you delete a client,
+their invoices go too. You can leave a short note on a client and it shows
+under their name.
 
-## Running it
+Invoices can be filtered by paid, unpaid, or overdue, and searched by
+description or client name. Overdue just means unpaid and past the due
+date, nothing clever. Mark an invoice paid or unpaid, delete it, export
+the filtered list as a CSV, or print it.
 
-You need Node.js 20+ and npm.
+When you first sign up you get three demo clients and five demo invoices,
+so the pages aren't empty. The dates are set relative to today, so one of
+them is always overdue. There is a "Reset demo data" button on the
+dashboard. It wipes your clients and invoices and puts the demo ones back,
+so be careful with it if you have real entries in there.
+
+## How to run it
+
+You need Node 20+ and npm, and Postgres running locally.
 
 ```bash
 cp .env.example .env
-# Open .env and set AUTH_SECRET to a long random string.
-# DATABASE_URL can stay as file:./dev.db while you work locally.
+# Open .env and put a long random string in AUTH_SECRET.
+# DATABASE_URL and DATABASE_URL_UNPOOLED point at your local Postgres.
 npm install
 npx prisma migrate dev
 npm run dev
 ```
 
-Open http://localhost:3000 and sign up. Do not commit `.env` or any `.db` file.
+Go to http://localhost:3000 and sign up. Don't commit `.env` — it's
+ignored for a reason.
 
 ```bash
 npm test         # unit tests
 npm run lint
 npm run typecheck
 npm run build
-npm start        # run the production build
+npm start        # runs the production build
 ```
 
-## How it is put together
+## How it's put together
 
-Next.js (App Router) and TypeScript, plain CSS, no component library. GSAP is the only
-animation dependency.
+Next.js with the App Router, TypeScript, plain CSS. I didn't use a
+component library. GSAP is the only animation dependency.
 
-The database is Prisma with SQLite locally. The schema is in `prisma/schema.prisma` and
-the migrations are committed under `prisma/migrations/`. All the client and invoice
-queries in `src/lib/data.ts` filter by the logged-in user's id. Pages are server
-components that check the session first; the forms call the `/api/*` routes, which
-check it again. Middleware only checks that a session cookie exists, it does not
-verify it — I did it that way because the Edge runtime cannot run the crypto code,
-and the real check happens on the server. That also avoids a loop I hit early on,
-where an expired cookie bounced between `/` and `/login`.
+The database is Prisma with Postgres, locally and in production. The schema is in
+`prisma/schema.prisma`, migrations are in `prisma/migrations/`. Every
+client and invoice query in `src/lib/data.ts` filters by the logged-in
+user's id, so accounts can't see each other's data.
 
-The pure logic (totals, overdue dates, search and filtering, CSV, validation) lives
-in `src/lib/` with tests next to it. There is also a test that uses a throwaway
-SQLite database to check that one user cannot see or delete another user's data.
+Pages are server components that check the session first, and the forms
+call the `/api/*` routes, which check it again. Middleware only checks
+that a session cookie exists — it doesn't verify it. I did it that way
+because the Edge runtime can't run the crypto code, and the real check
+happens on the server anyway. It also fixed a loop I ran into early on,
+where an expired cookie kept bouncing between `/` and `/login`.
 
-CI runs on pushes to `main` and on pull requests: migrate, lint, typecheck, test,
-build, on Node 20 and 22. The secrets in the workflow file are dummy values for
-tests only.
+The maths and filtering stuff — totals, overdue dates, search, CSV,
+validation — is in `src/lib/` with tests next to it. There's one test
+that spins up a throwaway Postgres database and checks that one user
+can't see or delete another user's data. That one took me a while.
 
-## Things that are still rough
+CI runs when I push to `main` or open a pull request: migrate, lint,
+typecheck, test, build, on Node 20 and 22. The secrets in the workflow
+file are dummy values just for the tests.
 
-SQLite does not persist on Vercel, so this is local-only as it stands. For
-production you need Postgres: point `DATABASE_URL` at a Postgres database, change
-`provider` in `prisma/schema.prisma` to `postgresql`, set a real `AUTH_SECRET`, and
-run `prisma migrate deploy`. I have not tried that setup end to end yet, so I am not
-claiming it works — the steps are in the deployment section below, untested.
+## What's still rough
 
-There is no password reset and no email verification yet. No payments either, invoices
-just record amounts and status. I also have no screenshots: there was no browser
-available where I built this, so I did not fake any. Screenshots go in
-`docs/screenshots/` once the app is deployed.
+No password reset yet, and no email verification. No payments either —
+invoices just record amounts and whether they're paid.
 
-## Deploying to Vercel (Postgres required)
+No screenshots yet. There was no browser available where I built this,
+so I didn't fake any. I'll add real ones to `docs/screenshots/` once
+it's deployed.
 
-1. Get a Postgres database (Vercel Postgres, Neon, or Supabase) and run
-   `prisma migrate deploy` against it, with `DATABASE_URL` set, from your own
-   machine. Check the tables are there before you rely on it.
+## Deploying to Vercel (Postgres)
+
+1. Get a Postgres database. I used a free Neon database from Vercel
+   Storage (`clientdesk-postgres`, Singapore region).
 2. Push the repo to GitHub.
-3. In Vercel, add a new project and import the repo. Framework preset: Next.js.
-   Build command: `npm run build`.
-4. Set two environment variables: `DATABASE_URL` (the Postgres URL) and
-   `AUTH_SECRET` (a long random string).
-5. Deploy, then check it yourself: logged out, `/` should send you to `/login`.
-   Sign up, add a client and an invoice, reload, and make sure both are still there.
+3. In Vercel, add a new project and import the repo. Framework preset:
+   Next.js. The build command (`npm run build`) runs
+   `prisma migrate deploy` first, so the tables get created on deploy.
+4. Connect the database to the project in Vercel Storage, so
+   `DATABASE_URL` and `DATABASE_URL_UNPOOLED` are set automatically.
+   Then set `AUTH_SECRET` (a long random string, different from your
+   local one) in the project settings.
+5. Deploy, then check it yourself: logged out, `/` should send you to
+   `/login`. Sign up, add a client and an invoice, reload, and make
+   sure both are still there.
 
-I only verified the production build locally, with curl, not on Vercel.
+## What I'd do next
 
-## What I would do next
-
-- Get the Postgres deploy actually working and add screenshots from it.
+- Add screenshots from the deployed app.
 - Password reset and email verification.
-- Invoice PDF export.
-- Recurring invoices and a per-client payment history.
+- Export an invoice as a PDF.
+- Recurring invoices, and a payment history per client.
 
 ## License
 
