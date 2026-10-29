@@ -1,15 +1,17 @@
 // ClientDesk database schema.
-// SQLite locally (DATABASE_URL=file:./dev.db). Portable types only
-// (String ids, DateTime, Float) so switching the provider to Postgres
-// later is plausible. Postgres has NOT been tested with this schema.
+// Postgres everywhere: locally, in CI, and in production (Neon on Vercel).
+// DATABASE_URL is the pooled/runtime URL; DATABASE_URL_UNPOOLED is the
+// direct URL Prisma migrations use. Locally and in CI both point at the
+// same Postgres; on Vercel the Neon integration sets both.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model User {
