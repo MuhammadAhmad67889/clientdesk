@@ -9,9 +9,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
+    setBusy(true);
     setError("");
     const res = await fetch("/api/auth/login", {
       body: JSON.stringify({ email, password }),
@@ -23,6 +26,7 @@ export default function LoginPage() {
       router.refresh();
       return;
     }
+    setBusy(false);
     const data = (await res.json().catch(() => null)) as { errors?: Record<string, string> } | null;
     setError(data?.errors?.form ?? data?.errors?.email ?? data?.errors?.password ?? "Could not log in.");
   }
@@ -38,7 +42,7 @@ export default function LoginPage() {
           <input autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} required type="password" value={password} />
         </label>
         {error && <p className="error full">{error}</p>}
-        <div className="actions full"><button className="primary" type="submit">Log in</button></div>
+        <div className="actions full"><button className="primary" disabled={busy} type="submit">{busy ? "Logging in…" : "Log in"}</button></div>
       </form>
       <p>No account yet? <Link href="/signup">Sign up</Link>.</p>
     </>
