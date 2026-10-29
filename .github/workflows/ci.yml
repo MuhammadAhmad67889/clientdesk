@@ -11,6 +11,11 @@ jobs:
     strategy:
       matrix:
         node-version: [20, 22]
+    env:
+      # Test-only values. The SQLite file is created by migrate deploy;
+      # AUTH_SECRET here is a dummy value used only for CI tests.
+      DATABASE_URL: file:./test.db
+      AUTH_SECRET: ci-test-only-dummy-secret-do-not-use-in-production
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,6 +23,8 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
+      - run: npx prisma migrate deploy
+        working-directory: .
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
