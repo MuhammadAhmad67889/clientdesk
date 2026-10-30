@@ -100,8 +100,7 @@ export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-export function validateCredentials(input: { email: string; password: string }): Record<string, string> {
-  const errors: Record<string, string> = {};
+export function validateCredentials(input: { email: string; password: string }): Record<string, string> {  const errors: Record<string, string> = {};
   if (!isValidEmail(input.email)) errors.email = "Enter a valid email address.";
   if (input.password.length < 8) errors.password = "Password must be at least 8 characters.";
   return errors;

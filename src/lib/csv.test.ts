@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { invoicesToCsv } from "./csv";
+import { invoicesToCsv, parseClientsCsv } from "./csv";
 import type { Client, Invoice } from "./types";
 
 const clients: Client[] = [
@@ -36,5 +36,29 @@ describe("invoicesToCsv", () => {
     expect(invoicesToCsv([], clients, "2026-10-29")).toBe(
       "Invoice ID,Client,Description,Amount,Status,Issued,Due\n",
     );
+  });
+});
+
+describe("parseClientsCsv", () => {
+  it("parses a header in any order and quoted fields", () => {
+    const { rows, skipped } = parseClientsCsv(
+      'email,name,company\nsara@example.com,"Khan, Sara",Northside Bakery\n',
+    );
+    expect(skipped).toBe(0);
+    expect(rows).toEqual([
+      { company: "Northside Bakery", email: "sara@example.com", name: "Khan, Sara", notes: undefined, phone: undefined },
+    ]);
+  });
+  it("skips rows without a name or with a bad email", () => {
+    const { rows, skipped } = parseClientsCsv(
+      "name,email\n,blank@example.com\nBad Email,not-an-email\nGood One,good@example.com\n",
+    );
+    expect(skipped).toBe(2);
+    expect(rows.map((r) => r.name)).toEqual(["Good One"]);
+  });
+  it("returns no rows when the header has no name column", () => {
+    const { rows, skipped } = parseClientsCsv("email\nsomeone@example.com\n");
+    expect(rows).toEqual([]);
+    expect(skipped).toBe(1);
   });
 });

@@ -6,6 +6,7 @@ import {
   verifyPassword,
   verifySessionCookie,
 } from "./auth";
+import { validatePasswordChange } from "./validation";
 
 const SECRET = "test-only-secret-for-unit-tests";
 
@@ -56,5 +57,14 @@ describe("validateCredentials", () => {
       password: "Password must be at least 8 characters.",
     });
     expect(validateCredentials({ email: "a@example.com", password: "long-enough" })).toEqual({});
+  });
+});
+
+describe("validatePasswordChange", () => {
+  it("requires a current password, 8+ new characters, and a matching confirmation", () => {
+    expect(validatePasswordChange({ confirmPassword: "new-pass-1", currentPassword: "", newPassword: "new-pass-1" })).toHaveProperty("currentPassword");
+    expect(validatePasswordChange({ confirmPassword: "short", currentPassword: "old-pass-1", newPassword: "short" })).toHaveProperty("newPassword");
+    expect(validatePasswordChange({ confirmPassword: "different-1", currentPassword: "old-pass-1", newPassword: "new-pass-1" })).toHaveProperty("confirmPassword");
+    expect(validatePasswordChange({ confirmPassword: "new-pass-1", currentPassword: "old-pass-1", newPassword: "new-pass-1" })).toEqual({});
   });
 });

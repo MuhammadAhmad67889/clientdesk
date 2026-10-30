@@ -47,3 +47,16 @@ export function isValidDate(value: string): boolean {
 export function isValidEmail(email: string): boolean {
   return EMAIL_RE.test(email.trim());
 }
+
+/** Shared by the change-password form and its API route. */
+export function validatePasswordChange(input: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!input.currentPassword) errors.currentPassword = "Enter your current password.";
+  if (input.newPassword.length < 8) errors.newPassword = "New password must be at least 8 characters.";
+  if (input.newPassword !== input.confirmPassword) errors.confirmPassword = "New passwords do not match.";
+  return errors;
+}
