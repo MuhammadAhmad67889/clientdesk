@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import Reveal from "./Reveal";
+import { EmptyState, StatusBadge } from "./ui";
 import { invoicesToCsv } from "../lib/csv";
 import { filterInvoices, formatMoney, isOverdue, todayIso } from "../lib/invoices";
 import type { Client, Invoice, InvoiceFilter } from "../lib/types";
 import { validateInvoice } from "../lib/validation";
+
+type SortKey = "due-asc" | "issued-desc" | "amount-desc";
 
 export default function InvoicesClient({
   initialClients,
@@ -19,6 +21,7 @@ export default function InvoicesClient({
   const [invoices, setInvoices] = useState(initialInvoices);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<InvoiceFilter>("all");
+  const [sort, setSort] = useState<SortKey>("due-asc");
   const [clientId, setClientId] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -26,12 +29,17 @@ export default function InvoicesClient({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savedNote, setSavedNote] = useState("");
 
   const today = todayIso();
-  const filtered = useMemo(
-    () => filterInvoices(invoices, clients, query, filter, today),
-    [invoices, clients, query, filter, today],
-  );
+  const filtered = useMemo(() => {
+    const list = filterInvoices(invoices, clients, query, filter, today);
+    const sorted = [...list];
+    if (sort === "amount-desc") sorted.sort((a, b) => b.amount - a.amount);
+    else if (sort === "issued-desc") sorted.sort((a, b) => b.issuedDate.localeCompare(a.issuedDate));
+    else sorted.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    return sorted;
+  }, [invoices, clients, query, filter, sort, today]);
   const byId = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
 
   async function submit(e: React.FormEvent) {
@@ -65,6 +73,7 @@ export default function InvoicesClient({
     const saved = (await res.json()) as Invoice;
     setInvoices((prev) => [...prev, saved]);
     setClientId(""); setDescription(""); setAmount(""); setDueDate(""); setErrors({});
+    setSavedNote("Invoice added.");
   }
 
   async function togglePaid(inv: Invoice) {
@@ -107,11 +116,18 @@ export default function InvoicesClient({
 
   return (
     <Reveal>
-      <h1>Invoices</h1>
-      <p className="lead">Overdue means unpaid and past its due date. Paid invoices are never overdue.</p>
+      <div className="page-head">
+        <h1>Invoices</h1>
+        <p className="lead">Overdue means unpaid and past its due date. Paid invoices are never overdue.</p>
+      </div>
 
       {clients.length === 0 ? (
-        <p className="card">Add a client first: <Link href="/clients">Go to Clients →</Link></p>
+        <EmptyState
+          actionHref="/clients"
+          actionLabel="Go to Clients"
+          text="Invoices need a client first."
+          title="Add a client first"
+        />
       ) : (
         <form className="card grid" data-reveal onSubmit={submit}>
           <h2 className="full" style={{ margin: 0 }}>Add invoice</h2>
@@ -134,7 +150,11 @@ export default function InvoicesClient({
             <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             {errors.dueDate && <span className="error">{errors.dueDate}</span>}
           </label>
-          <div className="actions full"><button className="primary" disabled={saving} type="submit">{saving ? "Saving…" : "Add invoice"}</button></div>
+          {errors.form && <p className="error full" role="alert">{errors.form}</p>}
+          <div className="actions full">
+            <button className="primary" disabled={saving} type="submit">{saving ? "Saving…" : "Add invoice"}</button>
+            {savedNote && <span className="hint" role="status">{savedNote}</span>}
+          </div>
         </form>
       )}
 
@@ -146,12 +166,20 @@ export default function InvoicesClient({
           <option value="unpaid">Unpaid</option>
           <option value="overdue">Overdue</option>
         </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Sort invoices">
+          <option value="due-asc">Due date, soonest first</option>
+          <option value="issued-desc">Issued, newest first</option>
+          <option value="amount-desc">Amount, highest first</option>
+        </select>
         <button onClick={exportCsv} disabled={filtered.length === 0}>Export CSV</button>
         <button onClick={() => window.print()}>Print</button>
       </div>
 
       {filtered.length === 0 ? (
-        <p>No invoices match this search / filter.</p>
+        <EmptyState
+          text="Try a different search, filter, or sort — or add an invoice above."
+          title="No invoices match this view"
+        />
       ) : (
         <div className="card table-wrap" data-reveal>
           <table>
@@ -161,13 +189,15 @@ export default function InvoicesClient({
                 const overdue = isOverdue(inv, today);
                 return (
                   <tr key={inv.id}>
-                    <td>{byId.get(inv.clientId)?.name ?? "Unknown client"}</td>
-                    <td>{inv.description}</td>
-                    <td>{formatMoney(inv.amount)}</td>
-                    <td>{overdue ? <span className="badge badge-overdue">Overdue</span> : inv.status === "paid" ? <span className="badge badge-paid">Paid</span> : <span className="badge badge-unpaid">Unpaid</span>}</td>
-                    <td>{inv.issuedDate}</td>
-                    <td>{inv.dueDate}</td>
-                    <td>
+                    <td data-label="Client">{byId.get(inv.clientId)?.name ?? "Unknown client"}</td>
+                    <td data-label="Description">{inv.description}</td>
+                    <td data-label="Amount">{formatMoney(inv.amount)}</td>
+                    <td data-label="Status">
+                      <StatusBadge status={overdue ? "overdue" : inv.status} />
+                    </td>
+                    <td data-label="Issued">{inv.issuedDate}</td>
+                    <td data-label="Due">{inv.dueDate}</td>
+                    <td data-label="Actions">
                       <div className="actions">
                         <button onClick={() => togglePaid(inv)}>
                           {inv.status === "paid" ? "Mark unpaid" : "Mark paid"}
@@ -178,7 +208,7 @@ export default function InvoicesClient({
                             <button onClick={() => setConfirmDeleteId(null)}>Cancel</button>
                           </>
                         ) : (
-                          <button className="danger" onClick={() => setConfirmDeleteId(inv.id)}>Delete</button>
+                          <button className="danger" onClick={() => deleteOne(inv.id)}>Delete</button>
                         )}
                       </div>
                     </td>

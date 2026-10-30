@@ -2,13 +2,17 @@
 
 import { useMemo, useState } from "react";
 import Reveal from "./Reveal";
+import { EmptyState } from "./ui";
 import { filterClients } from "../lib/invoices";
 import type { Client } from "../lib/types";
 import { validateClient } from "../lib/validation";
 
+type SortKey = "name-asc" | "name-desc" | "newest";
+
 export default function ClientsClient({ initialClients }: { initialClients: Client[] }) {
   const [clients, setClients] = useState(initialClients);
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortKey>("name-asc");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
@@ -18,8 +22,21 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savedNote, setSavedNote] = useState("");
 
-  const filtered = useMemo(() => filterClients(clients, query), [clients, query]);
+  const filtered = useMemo(() => {
+    const list = filterClients(clients, query);
+    const sorted = [...list];
+    if (sort === "name-desc") sorted.sort((a, b) => b.name.localeCompare(a.name));
+    else if (sort === "newest") sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    else sorted.sort((a, b) => a.name.localeCompare(b.name));
+    return sorted;
+  }, [clients, query, sort]);
+
+  function clearForm() {
+    setEditing(null);
+    setName(""); setEmail(""); setCompany(""); setPhone(""); setNotes(""); setErrors({});
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,14 +71,15 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
     setClients((prev) =>
       editing ? prev.map((c) => (c.id === saved.id ? saved : c)) : [...prev, saved],
     );
-    setEditing(null);
-    setName(""); setEmail(""); setCompany(""); setPhone(""); setNotes(""); setErrors({});
+    setSavedNote(editing ? "Client updated." : "Client added.");
+    clearForm();
   }
 
   function startEdit(c: Client) {
     setEditing(c);
     setName(c.name); setEmail(c.email ?? ""); setCompany(c.company ?? ""); setPhone(c.phone ?? ""); setNotes(c.notes ?? "");
     setErrors({});
+    setSavedNote("");
   }
 
   async function deleteOne(id: string) {
@@ -75,8 +93,10 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
 
   return (
     <Reveal>
-      <h1>Clients</h1>
-      <p className="lead">{clients.length} client{clients.length === 1 ? "" : "s"}. Deleting a client also deletes its invoices.</p>
+      <div className="page-head">
+        <h1>Clients</h1>
+        <p className="lead">{clients.length} client{clients.length === 1 ? "" : "s"}. Deleting a client also deletes its invoices.</p>
+      </div>
 
       <form className="card grid" data-reveal onSubmit={submit}>
         <h2 className="full" style={{ margin: 0 }}>{editing ? "Edit client" : "Add client"}</h2>
@@ -97,18 +117,33 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
         <label className="full">Notes
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anything worth remembering about this client" rows={2} />
         </label>
+        {errors.form && <p className="error full" role="alert">{errors.form}</p>}
         <div className="actions full">
           <button className="primary" disabled={saving} type="submit">{saving ? "Saving…" : editing ? "Save changes" : "Add client"}</button>
-          {editing && <button type="button" onClick={() => { setEditing(null); setName(""); setEmail(""); setCompany(""); setPhone(""); setNotes(""); }}>Cancel edit</button>}
+          {editing && <button type="button" onClick={clearForm}>Cancel edit</button>}
+          {savedNote && <span className="hint" role="status">{savedNote}</span>}
         </div>
       </form>
 
       <div className="toolbar">
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, email, company…" aria-label="Search clients" />
+        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Sort clients">
+          <option value="name-asc">Name A–Z</option>
+          <option value="name-desc">Name Z–A</option>
+          <option value="newest">Newest first</option>
+        </select>
       </div>
 
-      {filtered.length === 0 ? (
-        <p>No clients match your search.</p>
+      {clients.length === 0 ? (
+        <EmptyState
+          text="Add your first client above, then create invoices for them."
+          title="No clients yet"
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          text="Try a different search term or clear the search to see all clients."
+          title="No clients match your search"
+        />
       ) : (
         <div className="card table-wrap" data-reveal>
           <table>
@@ -116,11 +151,14 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
             <tbody>
               {filtered.map((c) => (
                 <tr key={c.id}>
-                  <td>
+                  <td data-label="Name">
                     {c.name}
                     {c.notes && <><br /><span className="hint">{c.notes}</span></>}
-                  </td><td>{c.email ?? "—"}</td><td>{c.company ?? "—"}</td><td>{c.phone ?? "—"}</td>
-                  <td>
+                  </td>
+                  <td data-label="Email">{c.email ?? "—"}</td>
+                  <td data-label="Company">{c.company ?? "—"}</td>
+                  <td data-label="Phone">{c.phone ?? "—"}</td>
+                  <td data-label="Actions">
                     <div className="actions">
                       <button onClick={() => startEdit(c)}>Edit</button>
                       {confirmDeleteId === c.id ? (
