@@ -423,7 +423,7 @@ input::placeholder, textarea::placeholder { color: var(--text-2); opacity: 0.8; 
   tbody tr:hover { background: transparent; }
 }
 @media print {
-  .sidebar, .topbar, .toolbar, .actions, form, .no-print { display: none !important; }
+  .sidebar, .topbar, .toolbar, .actions, form, .no-print, .page-actions { display: none !important; }
   body { background: #fff; }
   .card { border: none; padding: 0; box-shadow: none; }
 }
