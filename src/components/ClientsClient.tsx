@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useMemo, useRef, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState } from "./ui";
+import { parseClientsCsv } from "../lib/csv";
 import { filterClients } from "../lib/invoices";
 import type { Client } from "../lib/types";
 import { validateClient } from "../lib/validation";
@@ -23,6 +25,9 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedNote, setSavedNote] = useState("");
+  const [importNote, setImportNote] = useState("");
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
     const list = filterClients(clients, query);
@@ -91,6 +96,40 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
     if (res.ok) setClients((prev) => prev.filter((c) => c.id !== id));
   }
 
+  async function importFile(file: File) {
+    setImporting(true);
+    setImportNote("");
+    const text = await file.text();
+    const parsed = parseClientsCsv(text);
+    let imported = 0;
+    let failed = 0;
+    for (const row of parsed.rows) {
+      const res = await fetch("/api/clients", {
+        body: JSON.stringify(row),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+      if (res.ok) {
+        imported++;
+      } else {
+        failed++;
+      }
+    }
+    // The loop above awaited each response body in turn; refetching is
+    // simpler and guarantees the list matches the server.
+    const listRes = await fetch("/api/clients");
+    if (listRes.ok) setClients(await listRes.json());
+    setImporting(false);
+    setImportNote(
+      `Imported ${imported} client${imported === 1 ? "" : "s"}. Skipped ${parsed.skipped + failed} row${parsed.skipped + failed === 1 ? "" : "s"} (no name, bad email, or rejected by the server).`,
+    );
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
   return (
     <Reveal>
       <div className="page-head">
@@ -125,6 +164,28 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
         </div>
       </form>
 
+      <div className="card" data-reveal>
+        <h2>Import clients from CSV</h2>
+        <p className="hint" style={{ margin: "4px 0 12px" }}>
+          Header row with at least <code>name</code>, plus any of <code>email</code>, <code>company</code>, <code>phone</code>, <code>notes</code>.
+          Rows without a name or with a bad email are skipped and counted, never imported.
+        </p>
+        <div className="actions">
+          <input
+            accept=".csv,text/csv"
+            aria-label="Choose a CSV file of clients"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void importFile(file);
+            }}
+            ref={fileRef}
+            type="file"
+          />
+          {importing && <span className="hint">Importing…</span>}
+          {importNote && <span className="hint" role="status">{importNote}</span>}
+        </div>
+      </div>
+
       <div className="toolbar">
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, email, company…" aria-label="Search clients" />
         <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Sort clients">
@@ -152,7 +213,7 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
               {filtered.map((c) => (
                 <tr key={c.id}>
                   <td data-label="Name">
-                    {c.name}
+                    <Link href={`/clients/${c.id}`}>{c.name}</Link>
                     {c.notes && <><br /><span className="hint">{c.notes}</span></>}
                   </td>
                   <td data-label="Email">{c.email ?? "—"}</td>

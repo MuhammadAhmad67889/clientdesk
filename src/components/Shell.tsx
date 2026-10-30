@@ -9,6 +9,7 @@ const NAV = [
   { href: "/", label: "Overview" },
   { href: "/clients", label: "Clients" },
   { href: "/invoices", label: "Invoices" },
+  { href: "/settings", label: "Settings" },
 ];
 
 function Icon({ kind }: { kind: string }) {
@@ -101,7 +102,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     return <main>{children}</main>;
   }
 
-  const title = pathname === "/clients" ? "Clients" : pathname === "/invoices" ? "Invoices" : "Overview";
+  const title =
+    pathname === "/settings" ? "Settings"
+    : pathname.startsWith("/clients") ? "Clients"
+    : pathname.startsWith("/invoices") ? "Invoices"
+    : "Overview";
 
   return (
     <div className="shell">
@@ -118,7 +123,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           {NAV.map((item) => (
             <Link
               aria-current={pathname === item.href ? "page" : undefined}
-              className={`nav-item${pathname === item.href ? " active" : ""}`}
+              className={`nav-item${pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)) ? " active" : ""}`}
               href={item.href}
               key={item.href}
               onClick={() => setMobileOpen(false)}

@@ -49,6 +49,31 @@ export default function DashboardClient({
   const recentClients = [...clients]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 5);
+  // Last 6 calendar months, from real issued dates — no chart library,
+  // just bars scaled to the biggest month in the window.
+  const months = (() => {
+    const now = new Date();
+    const list: { key: string; label: string; outstanding: number; paid: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      list.push({
+        key,
+        label: d.toLocaleString("en-US", { month: "short", year: "numeric" }),
+        outstanding: 0,
+        paid: 0,
+      });
+    }
+    const byKey = new Map(list.map((m) => [m.key, m]));
+    for (const inv of invoices) {
+      const m = byKey.get(inv.issuedDate.slice(0, 7));
+      if (!m) continue;
+      if (inv.status === "paid") m.paid += inv.amount;
+      else m.outstanding += inv.amount;
+    }
+    return list;
+  })();
+  const monthMax = Math.max(1, ...months.flatMap((m) => [m.paid, m.outstanding]));
 
   async function resetDemo() {
     if (!window.confirm("Reset to the demo clients and invoices? Your changes will be lost.")) return;
@@ -86,6 +111,35 @@ export default function DashboardClient({
         <div className="stat" data-reveal><span>Overdue</span><strong>{totals.overdueCount} · {formatMoney(totals.overdueAmount)}</strong><small>Unpaid and past due</small></div>
         <div className="stat" data-reveal><span>Clients</span><strong>{totals.clientCount}</strong></div>
         <div className="stat" data-reveal><span>Invoices</span><strong>{totals.invoiceCount}</strong></div>
+      </div>
+
+      <div className="card" data-reveal>
+        <div className="card-head">
+          <h2>Last 6 months</h2>
+          <p>By issued date · paid vs outstanding</p>
+        </div>
+        <div style={{ display: "grid", gap: 10 }}>
+          {months.map((m) => (
+            <div key={m.key}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem" }}>
+                <strong>{m.label}</strong>
+                <span style={{ color: "var(--text-2)" }}>
+                  Paid {formatMoney(m.paid)} · Outstanding {formatMoney(m.outstanding)}
+                </span>
+              </div>
+              <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                <div
+                  aria-hidden="true"
+                  style={{ background: "var(--success)", borderRadius: 4, height: 8, width: `${Math.max(m.paid > 0 ? 4 : 0, (m.paid / monthMax) * 100)}%` }}
+                />
+                <div
+                  aria-hidden="true"
+                  style={{ background: "var(--primary)", borderRadius: 4, height: 8, width: `${Math.max(m.outstanding > 0 ? 4 : 0, (m.outstanding / monthMax) * 100)}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="two-col">

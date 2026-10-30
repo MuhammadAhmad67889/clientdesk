@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
@@ -199,6 +200,7 @@ export default function InvoicesClient({
                     <td data-label="Due">{inv.dueDate}</td>
                     <td data-label="Actions">
                       <div className="actions">
+                        <Link className="btn" href={`/invoices/${inv.id}`}>View</Link>
                         <button onClick={() => togglePaid(inv)}>
                           {inv.status === "paid" ? "Mark unpaid" : "Mark paid"}
                         </button>
