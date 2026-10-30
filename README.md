@@ -94,7 +94,21 @@ file are dummy values just for the tests.
 ## What's still rough
 
 No password reset yet, and no email verification. No payments either —
-invoices just record amounts and whether they're paid.
+invoices just record amounts and whether they're paid. There are no
+projects, tasks, messages, reports, or settings pages — the redesign
+deliberately did not invent them, so the sidebar only lists Overview,
+Clients, and Invoices.
+
+## Design (October 2026 redesign)
+
+A premium, restrained redesign on the same code: Inter type, an 8px
+spacing system, navy/blue tokens with light and dark modes (saved per
+browser), a collapsible sidebar, a Ctrl/Cmd+K command palette that
+searches real clients and invoices, sorted client/invoice lists, a
+dashboard "needs your attention" section for overdue invoices, and
+card layouts on mobile instead of sideways-scrolling tables. No
+features were removed and no backend or schema changes were made;
+every number on the dashboard still comes from your real data.
 
 No screenshots yet. There was no browser available where I built this,
 so I didn't fake any. I'll add real ones to `docs/screenshots/` once
