@@ -113,9 +113,15 @@ card layouts on mobile instead of sideways-scrolling tables. No
 features were removed and no backend or schema changes were made;
 every number on the dashboard still comes from your real data.
 
-No screenshots yet. There was no browser available where I built this,
-so I didn't fake any. I'll add real ones to `docs/screenshots/` once
-it's deployed.
+## Screenshots
+
+These are real screenshots of the deployed app, taken with the seeded
+demo data (not a real customer's data). They show the redesigned
+interface: sidebar, dashboard, clients, and invoices.
+
+![Dashboard](docs/screenshots/dashboard.png)
+![Clients](docs/screenshots/clients.png)
+![Invoices](docs/screenshots/invoices.png)
 
 ## Deploying to Vercel (Postgres)
 
@@ -135,8 +141,6 @@ it's deployed.
 
 ## What I'd do next
 
-- Add screenshots from the deployed app (the ones I captured earlier
-  show the old design, so they need re-capturing first).
 - Password reset by email, once there's an email service.
 - Recurring invoices, and a payment history per client.
 
