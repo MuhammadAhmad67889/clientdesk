@@ -93,11 +93,14 @@ file are dummy values just for the tests.
 
 ## What's still rough
 
-No password reset yet, and no email verification. No payments either —
-invoices just record amounts and whether they're paid. There are no
-projects, tasks, messages, reports, or settings pages — the redesign
-deliberately did not invent them, so the sidebar only lists Overview,
-Clients, and Invoices.
+No password reset by email yet, and no email verification — that
+needs an email service, which I haven't added. If you're signed in,
+you can change your password from Settings instead, and it signs you
+out on your other devices. No payments either — invoices just record
+amounts and whether they're paid. There are no projects, tasks,
+messages, or reports pages, and no file attachments — I didn't invent
+those, so the sidebar only lists Overview, Clients, Invoices, and
+Settings.
 
 ## Design (October 2026 redesign)
 
@@ -132,10 +135,29 @@ it's deployed.
 
 ## What I'd do next
 
-- Add screenshots from the deployed app.
-- Password reset and email verification.
-- Export an invoice as a PDF.
+- Add screenshots from the deployed app (the ones I captured earlier
+  show the old design, so they need re-capturing first).
+- Password reset by email, once there's an email service.
 - Recurring invoices, and a payment history per client.
+
+## Features added 30 October 2026
+
+I kept building on the same app instead of starting over:
+
+- Client pages: click a client to see their contact details, totals,
+  and all their invoices.
+- Invoice pages: open an invoice to see it on its own, mark it paid
+  or unpaid, delete it, or print it — printing and choosing "Save as
+  PDF" in your browser is how you get a PDF. There's no PDF library
+  in the project, and I didn't want to pretend otherwise.
+- Settings: change your password while signed in (current password
+  checked, other sessions signed out).
+- Client CSV import: upload a CSV with a `name` header and optional
+  email/company/phone/notes columns. Bad rows are skipped and counted,
+  not silently dropped.
+- Dashboard: a last-6-months view of paid vs outstanding, from real
+  issued dates. No chart library, just bars — and no numbers that
+  aren't in the database.
 
 ## License
 
