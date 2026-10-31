@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
 import { computeTotals, formatMoney, isOverdue, sortInvoicesRecent, todayIso } from "../lib/invoices";
+import { computeMonthlyOverview } from "../lib/monthly";
 import type { Client, Invoice } from "../lib/types";
 
 export default function DashboardClient({
@@ -49,30 +50,9 @@ export default function DashboardClient({
   const recentClients = [...clients]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 5);
-  // Last 6 calendar months, from real issued dates — no chart library,
+  // Last 6 months, from real issued dates — no chart library,
   // just bars scaled to the biggest month in the window.
-  const months = (() => {
-    const now = new Date();
-    const list: { key: string; label: string; outstanding: number; paid: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      list.push({
-        key,
-        label: d.toLocaleString("en-US", { month: "short", year: "numeric" }),
-        outstanding: 0,
-        paid: 0,
-      });
-    }
-    const byKey = new Map(list.map((m) => [m.key, m]));
-    for (const inv of invoices) {
-      const m = byKey.get(inv.issuedDate.slice(0, 7));
-      if (!m) continue;
-      if (inv.status === "paid") m.paid += inv.amount;
-      else m.outstanding += inv.amount;
-    }
-    return list;
-  })();
+  const months = computeMonthlyOverview(invoices);
   const monthMax = Math.max(1, ...months.flatMap((m) => [m.paid, m.outstanding]));
 
   async function resetDemo() {
