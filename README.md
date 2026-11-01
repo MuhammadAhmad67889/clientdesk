@@ -123,6 +123,25 @@ interface: sidebar, dashboard, clients, and invoices.
 ![Clients](docs/screenshots/clients.png)
 ![Invoices](docs/screenshots/invoices.png)
 
+## How I verified this
+
+CI runs on every push to `main`: migrate, lint, typecheck, test, and
+build on Node 20 and 22. The live checks I actually did: logged out,
+`/` sends you to `/login`; signed up, added a client and an invoice,
+reloaded, and both were still there.
+
+The screenshots above are real shots of the deployed app with seeded
+demo data, taken 30 October 2026 — not a real customer's data.
+
+Data cleanup, 1 November 2026: the live database had picked up six
+throwaway test accounts from verification and screenshot work (19
+clients, 31 invoices between them). I deleted those six accounts;
+their clients and invoices went with them. One other account that
+signed up on 29 October was left alone, because I couldn't confirm it
+was a test account. After the delete I re-checked: 1 account, 3
+clients, and 5 invoices remained, and the live site still sends
+logged-out visitors to `/login`.
+
 ## Deploying to Vercel (Postgres)
 
 1. Get a Postgres database. I used a free Neon database from Vercel
