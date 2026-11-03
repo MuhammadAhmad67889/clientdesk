@@ -60,6 +60,19 @@ export function applyInvoiceEdit(invoice: Invoice, payments: Payment[], edit: In
   return updated;
 }
 
+/**
+ * Status after deleting a payment: a paid invoice drops back to
+ * unpaid when the remaining payments no longer cover its total.
+ * Anything else keeps its status — in particular, deleting a payment
+ * from an unpaid invoice changes nothing about its status.
+ */
+export function applyPaymentDeletion(invoice: Invoice, remainingPayments: Payment[]): Invoice {
+  if (invoice.status === "paid" && computeAmountPaid(remainingPayments) < computeInvoiceTotal(invoice) - 0.001) {
+    return { ...invoice, status: "unpaid" };
+  }
+  return invoice;
+}
+
 export function computeTotals(
   invoices: Invoice[],
   clients: Client[],

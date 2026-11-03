@@ -2,7 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
 import { hashEquals, hashToken, SESSION_COOKIE, verifySessionCookie } from "./auth";
 import { getPrisma } from "./prisma";
-import { applyInvoiceEdit, computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, seedData, todayIso } from "./invoices";
+import { applyInvoiceEdit, applyPaymentDeletion, computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, seedData, todayIso } from "./invoices";
 import { addMonths, dueTemplates } from "./recurring";
 import type { Client, Invoice, Payment, RecurringTemplate } from "./types";
 
@@ -333,6 +333,30 @@ export async function recordPayment(
   return { amount: created.amount, id: created.id, invoiceId: created.invoiceId, paidAt: created.paidAt, userId: created.userId };
 }
 
+/**
+ * Delete one recorded payment. Scoped to the user's invoice; returns
+ * false when the payment is not theirs. A paid invoice whose
+ * remaining payments no longer cover its total drops back to unpaid.
+ */
+export async function deletePayment(
+  userId: string,
+  invoiceId: string,
+  paymentId: string,
+  db: PrismaClient = getPrisma(),
+): Promise<boolean> {
+  const payment = await db.payment.findFirst({ where: { id: paymentId, invoiceId, userId } });
+  if (!payment) return false;
+  const invoice = await db.invoice.findFirst({ where: { id: invoiceId, userId } });
+  if (!invoice) return false;
+  await db.payment.delete({ where: { id: paymentId } });
+  const remainingRows = await db.payment.findMany({ where: { invoiceId, userId } });
+  const remaining = remainingRows.map((r) => ({ amount: r.amount, id: r.id, invoiceId: r.invoiceId, paidAt: r.paidAt, userId: r.userId }));
+  const updated = applyPaymentDeletion(toInvoice(invoice), remaining);
+  if (updated.status !== invoice.status) {
+    await db.invoice.update({ data: { status: updated.status }, where: { id: invoiceId } });
+  }
+  return true;
+}
 
 /** Seed clearly labelled demo data for one user only, with fresh ids per user. */
 export async function seedDemoForUser(userId: string, db: PrismaClient = getPrisma()): Promise<void> {

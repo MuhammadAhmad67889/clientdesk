@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyInvoiceEdit,
+  applyPaymentDeletion,
   computeClientTotals,
   computeRemainingBalance,
   computeInvoiceTotal,
@@ -101,6 +102,23 @@ describe("applyInvoiceEdit", () => {
     expect(updated.clientId).toBe("c1");
     expect(updated.issuedDate).toBe("2026-10-20");
     expect(updated.description).toBe("Revised work");
+  });
+});
+
+describe("applyPaymentDeletion", () => {
+  it("drops a paid invoice back to unpaid when payments no longer cover it", () => {
+    const updated = applyPaymentDeletion(inv({ amount: 400, id: "1", status: "paid" }), []);
+    expect(updated.status).toBe("unpaid");
+  });
+  it("keeps a paid invoice paid when remaining payments still cover it", () => {
+    const updated = applyPaymentDeletion(
+      inv({ amount: 400, id: "1", status: "paid" }),
+      [{ amount: 400, id: "p1", invoiceId: "1", paidAt: "2026-10-20", userId: "u1" }],
+    );
+    expect(updated.status).toBe("paid");
+  });
+  it("leaves an unpaid invoice unpaid", () => {
+    expect(applyPaymentDeletion(inv({ amount: 400, id: "1" }), []).status).toBe("unpaid");
   });
 });
 
