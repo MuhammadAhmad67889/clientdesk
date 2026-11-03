@@ -22,6 +22,8 @@ export default function InvoicesClient({
   const [invoices, setInvoices] = useState(initialInvoices);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<InvoiceFilter>("all");
+  const [dueFrom, setDueFrom] = useState("");
+  const [dueTo, setDueTo] = useState("");
   const [sort, setSort] = useState<SortKey>("due-asc");
   const [clientId, setClientId] = useState("");
   const [description, setDescription] = useState("");
@@ -34,13 +36,13 @@ export default function InvoicesClient({
 
   const today = todayIso();
   const filtered = useMemo(() => {
-    const list = filterInvoices(invoices, clients, query, filter, today);
+    const list = filterInvoices(invoices, clients, query, filter, today, { dueFrom, dueTo });
     const sorted = [...list];
     if (sort === "amount-desc") sorted.sort((a, b) => b.amount - a.amount);
     else if (sort === "issued-desc") sorted.sort((a, b) => b.issuedDate.localeCompare(a.issuedDate));
     else sorted.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     return sorted;
-  }, [invoices, clients, query, filter, sort, today]);
+  }, [invoices, clients, query, filter, sort, today, dueFrom, dueTo]);
   const byId = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
 
   async function submit(e: React.FormEvent) {
@@ -172,6 +174,13 @@ export default function InvoicesClient({
           <option value="issued-desc">Issued, newest first</option>
           <option value="amount-desc">Amount, highest first</option>
         </select>
+        <label>Due from
+          <input type="date" value={dueFrom} onChange={(e) => setDueFrom(e.target.value)} aria-label="Due from" />
+        </label>
+        <label>Due to
+          <input type="date" value={dueTo} onChange={(e) => setDueTo(e.target.value)} aria-label="Due to" />
+        </label>
+        <button onClick={() => { setDueFrom(""); setDueTo(""); }} disabled={!dueFrom && !dueTo}>Clear dates</button>
         <button onClick={exportCsv} disabled={filtered.length === 0}>Export CSV</button>
         <button onClick={() => window.print()}>Print</button>
       </div>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState } from "./ui";
-import { parseClientsCsv } from "../lib/csv";
+import { clientsToCsv, parseClientsCsv } from "../lib/csv";
 import { filterClients } from "../lib/invoices";
 import type { Client } from "../lib/types";
 import { validateClient } from "../lib/validation";
@@ -193,6 +193,17 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
           <option value="name-desc">Name Z–A</option>
           <option value="newest">Newest first</option>
         </select>
+        <button onClick={() => {
+          const blob = new Blob([clientsToCsv(filtered)], { type: "text/csv;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "clientdesk-clients.csv";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }} disabled={filtered.length === 0}>Export CSV</button>
       </div>
 
       {clients.length === 0 ? (
