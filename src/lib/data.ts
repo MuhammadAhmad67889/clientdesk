@@ -3,7 +3,8 @@ import { cookies } from "next/headers";
 import { hashEquals, hashToken, SESSION_COOKIE, verifySessionCookie } from "./auth";
 import { getPrisma } from "./prisma";
 import { seedData, todayIso } from "./invoices";
-import type { Client, Invoice } from "./types";
+import { addMonths, dueTemplates } from "./recurring";
+import type { Client, Invoice, RecurringTemplate } from "./types";
 
 export interface SessionUser {
   email: string;
@@ -55,6 +56,30 @@ function toInvoice(row: {
     issuedDate: row.issuedDate,
     status: row.status === "paid" ? "paid" : "unpaid",
     taxRate: row.taxRate,
+  };
+}
+
+function toRecurring(row: {
+  amount: number;
+  clientId: string;
+  createdAt: Date;
+  description: string;
+  discountRate: number;
+  id: string;
+  nextDueDate: string;
+  taxRate: number;
+  userId: string;
+}): RecurringTemplate {
+  return {
+    amount: row.amount,
+    clientId: row.clientId,
+    createdAt: dateToDay(row.createdAt),
+    description: row.description,
+    discountRate: row.discountRate,
+    id: row.id,
+    nextDueDate: row.nextDueDate,
+    taxRate: row.taxRate,
+    userId: row.userId,
   };
 }
 
@@ -174,6 +199,63 @@ export async function deleteInvoice(userId: string, id: string, db: PrismaClient
   if (!existing) return false;
   await db.invoice.delete({ where: { id } });
   return true;
+}
+
+export async function listRecurringTemplates(userId: string, db: PrismaClient = getPrisma()): Promise<RecurringTemplate[]> {
+  const rows = await db.recurringTemplate.findMany({ orderBy: { nextDueDate: "asc" }, where: { userId } });
+  return rows.map(toRecurring);
+}
+
+export async function createRecurringTemplate(
+  userId: string,
+  input: { amount: number; clientId: string; description: string; discountRate: number; nextDueDate: string; taxRate: number },
+  db: PrismaClient = getPrisma(),
+): Promise<RecurringTemplate | null> {
+  const client = await db.client.findFirst({ where: { id: input.clientId, userId } });
+  if (!client) return null;
+  return toRecurring(await db.recurringTemplate.create({ data: { ...input, userId } }));
+}
+
+export async function deleteRecurringTemplate(userId: string, id: string, db: PrismaClient = getPrisma()): Promise<boolean> {
+  const existing = await db.recurringTemplate.findFirst({ where: { id, userId } });
+  if (!existing) return false;
+  await db.recurringTemplate.delete({ where: { id } });
+  return true;
+}
+
+/**
+ * Generate one invoice per due template, then advance each template by
+ * one month. One invoice per run on purpose: a template months overdue
+ * never surprises the user with a bulk of backdated invoices at once.
+ */
+export async function generateDueRecurring(
+  userId: string,
+  today: string,
+  db: PrismaClient = getPrisma(),
+): Promise<Invoice[]> {
+  const templates = await listRecurringTemplates(userId, db);
+  const created: Invoice[] = [];
+  for (const t of dueTemplates(templates, today)) {
+    const invoice = await db.invoice.create({
+      data: {
+        amount: t.amount,
+        clientId: t.clientId,
+        description: t.description,
+        discountRate: t.discountRate,
+        dueDate: t.nextDueDate,
+        issuedDate: today,
+        status: "unpaid",
+        taxRate: t.taxRate,
+        userId,
+      },
+    });
+    await db.recurringTemplate.update({
+      data: { nextDueDate: addMonths(t.nextDueDate, 1) },
+      where: { id: t.id },
+    });
+    created.push(toInvoice(invoice));
+  }
+  return created;
 }
 
 /** Seed clearly labelled demo data for one user only, with fresh ids per user. */

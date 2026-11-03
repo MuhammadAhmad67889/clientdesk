@@ -22,6 +22,19 @@ export interface Invoice {
   taxRate: number; // percent, 0–100; applied to the discounted amount
 }
 
+/** A monthly retainer template. Generating creates one invoice per due template. */
+export interface RecurringTemplate {
+  amount: number;
+  clientId: string;
+  createdAt: string;
+  description: string;
+  discountRate: number;
+  id: string;
+  nextDueDate: string; // YYYY-MM-DD
+  taxRate: number;
+  userId: string;
+}
+
 export type InvoiceFilter = "all" | "paid" | "unpaid" | "overdue";
 
 export interface Totals {
