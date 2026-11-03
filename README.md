@@ -4,9 +4,18 @@ I kept losing track of freelance work in spreadsheets. Who owed what, what was
 already paid, what was overdue — it was all over the place. So I built this
 for myself, and kept it small on purpose.
 
-ClientDesk is a client and invoice manager. You sign up, add your clients,
-add invoices, and you can see at a glance what is paid, unpaid, and overdue.
-Each account only sees its own stuff. That's it, really.
+ClientDesk is a small SaaS for freelancers: a client and invoice
+manager with accounts, plans, and a public site. You sign up, add your
+clients, add invoices, and you can see at a glance what is paid,
+unpaid, and overdue. Each account only sees its own stuff. That's it,
+really.
+
+Visitors who aren't signed in see a landing page, a pricing page
+(Free $0, Pro $9/month, Business $19/month), and plain-language terms
+and privacy pages. Signing up starts you on Free with an onboarding
+checklist on the dashboard: add a client, create an invoice, record a
+payment. The demo data that comes with a new account already covers
+the first two, and the checklist says so.
 
 I'm Muhammad Ahmad, a web developer in Rawalpindi / Islamabad, open to
 remote work. muhammadahmad.codes@gmail.com
@@ -57,6 +66,38 @@ so the pages aren't empty. The dates are set relative to today, so one of
 them is always overdue. There is a "Reset demo data" button on the
 dashboard. It wipes your clients and invoices and puts the demo ones back,
 so be careful with it if you have real entries in there.
+
+### Draft helpers (rule-based, not AI)
+
+Three small helpers that draft things from your real data — every figure
+in them comes from an invoice or a payment you already recorded, and
+nothing they produce is saved until you confirm it:
+
+- **Draft invoice from text** (Invoices → "Draft an invoice from
+  text"): paste something like "Website work for Acme Studio, total
+  $1200, due 2026-12-01" and it fills in the client, amount, and due
+  date. The rules are simple on purpose: the largest $-marked amount,
+  a YYYY-MM-DD or DD/MM/YYYY date, the longest client name found in
+  the text. Anything it misses stays empty for you to fill in.
+- **Reminder draft** on each unpaid invoice's page: a fixed template
+  with that invoice's total, paid so far, balance, and days overdue.
+  There is no send button — ClientDesk has no email service yet — so
+  you copy it into your own email.
+- **Dashboard summaries**: this month's billed, paid, and outstanding
+  totals (plain arithmetic, no forecast), and a "largest outstanding
+  balances" list that is a sort by outstanding amount, largest first —
+  not a risk prediction.
+
+### Plans and billing
+
+Free allows 10 clients and 30 invoices (demo data counts toward both).
+Pro and Business are unlimited. The billing code is built — Stripe
+checkout, a signature-checked webhook that flips your plan, and a
+customer portal for managing or cancelling — but it is **not switched
+on yet**: Stripe isn't connected, so every account is on Free and the
+Settings billing section says so plainly. No real money moves until
+test-mode billing is switched on deliberately, and live payments are a
+separate decision after that.
 
 ## How to run it
 
@@ -113,7 +154,8 @@ file are dummy values just for the tests.
 No password reset by email yet, and no email verification — that
 needs an email service, which I haven't added. If you're signed in,
 you can change your password from Settings instead, and it signs you
-out on your other devices. There are no projects, tasks,
+out on your other devices. Billing is built but not switched on (see
+Plans and billing above). There are no projects, tasks,
 messages, or reports pages, and no file attachments — I didn't invent
 those, so the sidebar only lists Overview, Clients, Invoices, and
 Settings.
@@ -178,7 +220,9 @@ logged-out visitors to `/login`.
 
 ## What I'd do next
 
+- Switch on Stripe billing in test mode, then try a demo payment with a test card.
 - Password reset by email, once there's an email service.
+- Draft helpers that use a real language model (needs an API key) — the rule-based drafts above are the fallback if there's no key.
 
 ## Features added 30 October 2026
 
