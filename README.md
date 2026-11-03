@@ -22,7 +22,8 @@ cookie. No Google login or anything like that, and no demo account — you
 have to make your own.
 
 On the dashboard you get your totals: outstanding, paid, overdue, and your
-recent invoices. The stat cards fade in a bit as you scroll. I used GSAP
+recent invoices. The overdue and outstanding figures use what's actually
+left after part-payments, not the full invoice amounts. The stat cards fade in a bit as you scroll. I used GSAP
 for that. Turn on reduced motion and it just doesn't animate. If GSAP
 fails to load, nothing disappears, the page still works.
 
@@ -30,10 +31,26 @@ Add clients, edit them, search them, delete them. If you delete a client,
 their invoices go too. You can leave a short note on a client and it shows
 under their name.
 
-Invoices can be filtered by paid, unpaid, or overdue, and searched by
-description or client name. Overdue just means unpaid and past the due
-date, nothing clever. Mark an invoice paid or unpaid, delete it, export
-the filtered list as a CSV, or print it.
+Invoices can be filtered by paid, unpaid, or overdue, and by a due-date
+range, and searched by description or client name. Overdue just means
+unpaid and past the due date, nothing clever. Mark an invoice paid or
+unpaid, edit it, duplicate it for a repeat job, delete it, export the
+filtered list as a CSV, print it, or download a real PDF of it.
+
+Invoices have numbers (INV-001, INV-002, and so on) and can carry a
+discount and a tax rate — discount comes off first, then tax is worked
+out on what's left. You can set a business name in Settings and it
+shows on the invoice page and the PDF. Invoices can also repeat
+monthly: set one up once, then press "Generate due now" when it's due
+and it makes one invoice and moves the next date a month on. Nothing
+runs in the background.
+
+Part-payments work too. Record what a client actually paid and when,
+and the invoice shows paid so far and what's left. When the payments
+reach the total it flips to paid by itself. Recorded a payment by
+mistake? Delete it and the balance comes back. The invoices CSV
+includes paid and balance columns, and each client's page and row in
+the clients list show their outstanding balance.
 
 When you first sign up you get three demo clients and five demo invoices,
 so the pages aren't empty. The dates are set relative to today, so one of
@@ -96,8 +113,7 @@ file are dummy values just for the tests.
 No password reset by email yet, and no email verification — that
 needs an email service, which I haven't added. If you're signed in,
 you can change your password from Settings instead, and it signs you
-out on your other devices. No payments either — invoices just record
-amounts and whether they're paid. There are no projects, tasks,
+out on your other devices. There are no projects, tasks,
 messages, or reports pages, and no file attachments — I didn't invent
 those, so the sidebar only lists Overview, Clients, Invoices, and
 Settings.
@@ -131,7 +147,9 @@ build on Node 20 and 22. The live checks I actually did: logged out,
 reloaded, and both were still there.
 
 The screenshots above are real shots of the deployed app with seeded
-demo data, taken 30 October 2026 — not a real customer's data.
+demo data, taken 30 October 2026 — not a real customer's data. Features
+added since then (payments, recurring invoices, edit and duplicate)
+aren't in them.
 
 Data cleanup, 1 November 2026: the live database had picked up six
 throwaway test accounts from verification and screenshot work (19
@@ -161,7 +179,6 @@ logged-out visitors to `/login`.
 ## What I'd do next
 
 - Password reset by email, once there's an email service.
-- Recurring invoices, and a payment history per client.
 
 ## Features added 30 October 2026
 
@@ -171,8 +188,8 @@ I kept building on the same app instead of starting over:
   and all their invoices.
 - Invoice pages: open an invoice to see it on its own, mark it paid
   or unpaid, delete it, or print it — printing and choosing "Save as
-  PDF" in your browser is how you get a PDF. There's no PDF library
-  in the project, and I didn't want to pretend otherwise.
+  PDF" in your browser is how you got a PDF back then. A real
+  server-generated PDF download came later.
 - Settings: change your password while signed in (current password
   checked, other sessions signed out).
 - Client CSV import: upload a CSV with a `name` header and optional
