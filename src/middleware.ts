@@ -8,8 +8,11 @@ import { SESSION_COOKIE } from "./lib/cookie-name";
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const hasCookie = Boolean(req.cookies.get(SESSION_COOKIE)?.value);
+  // "/" is the public landing page now, so it is not a protected
+  // redirect; the root page itself decides between landing and
+  // dashboard from the session. /clients and /invoices stay guarded.
   const isProtected =
-    pathname === "/" || pathname.startsWith("/clients") || pathname.startsWith("/invoices");
+    pathname.startsWith("/clients") || pathname.startsWith("/invoices");
   if (isProtected && !hasCookie) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
