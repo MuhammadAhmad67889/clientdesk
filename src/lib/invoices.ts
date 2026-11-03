@@ -1,4 +1,4 @@
-import type { Client, Invoice, InvoiceFilter, Totals } from "./types";
+import type { Client, Invoice, InvoiceFilter, Payment, Totals } from "./types";
 
 /** Today as YYYY-MM-DD, in local time. Pure callers pass `today` explicitly. */
 export function todayIso(date = new Date()): string {
@@ -26,6 +26,16 @@ export function isOverdue(invoice: Invoice, today: string): boolean {
 export function computeInvoiceTotal(invoice: Invoice): number {
   const discounted = invoice.amount * (1 - invoice.discountRate / 100);
   return roundMoney(discounted * (1 + invoice.taxRate / 100));
+}
+
+/** Sum of recorded payments against an invoice, rounded to cents. */
+export function computeAmountPaid(payments: Payment[]): number {
+  return roundMoney(payments.reduce((sum, p) => sum + p.amount, 0));
+}
+
+/** What is still owed: total due minus recorded payments, never below zero. */
+export function computeRemainingBalance(invoice: Invoice, payments: Payment[]): number {
+  return Math.max(0, roundMoney(computeInvoiceTotal(invoice) - computeAmountPaid(payments)));
 }
 
 export function computeTotals(

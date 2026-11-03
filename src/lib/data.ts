@@ -2,9 +2,9 @@ import type { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
 import { hashEquals, hashToken, SESSION_COOKIE, verifySessionCookie } from "./auth";
 import { getPrisma } from "./prisma";
-import { seedData, todayIso } from "./invoices";
+import { computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, seedData, todayIso } from "./invoices";
 import { addMonths, dueTemplates } from "./recurring";
-import type { Client, Invoice, RecurringTemplate } from "./types";
+import type { Client, Invoice, Payment, RecurringTemplate } from "./types";
 
 export interface SessionUser {
   businessName?: string;
@@ -270,6 +270,38 @@ export async function generateDueRecurring(
     created.push(toInvoice(invoice));
   }
   return created;
+}
+
+export async function listPaymentsForInvoice(userId: string, invoiceId: string, db: PrismaClient = getPrisma()): Promise<Payment[]> {
+  const invoice = await db.invoice.findFirst({ where: { id: invoiceId, userId } });
+  if (!invoice) return [];
+  const rows = await db.payment.findMany({ orderBy: { paidAt: "asc" }, where: { invoiceId, userId } });
+  return rows.map((r) => ({ amount: r.amount, id: r.id, invoiceId: r.invoiceId, paidAt: r.paidAt, userId: r.userId }));
+}
+
+/**
+ * Record a payment. Returns null when the invoice is not the user's, or
+ * the amount exceeds the remaining balance. When payments reach the
+ * invoice total, the invoice flips to paid automatically.
+ */
+export async function recordPayment(
+  userId: string,
+  invoiceId: string,
+  input: { amount: number; paidAt: string },
+  db: PrismaClient = getPrisma(),
+): Promise<Payment | null> {
+  const invoice = await db.invoice.findFirst({ where: { id: invoiceId, userId } });
+  if (!invoice) return null;
+  const inv = toInvoice(invoice);
+  const existing = await db.payment.findMany({ where: { invoiceId, userId } });
+  const paid = existing.map((r) => ({ amount: r.amount, id: r.id, invoiceId: r.invoiceId, paidAt: r.paidAt, userId: r.userId }));
+  if (input.amount - computeRemainingBalance(inv, paid) > 0.001) return null;
+  const created = await db.payment.create({ data: { amount: input.amount, invoiceId, paidAt: input.paidAt, userId } });
+  const newPaid = computeAmountPaid([...paid, { amount: created.amount, id: created.id, invoiceId: created.invoiceId, paidAt: created.paidAt, userId: created.userId }]);
+  if (newPaid >= computeInvoiceTotal(inv) - 0.001) {
+    await db.invoice.update({ data: { status: "paid" }, where: { id: invoiceId } });
+  }
+  return { amount: created.amount, id: created.id, invoiceId: created.invoiceId, paidAt: created.paidAt, userId: created.userId };
 }
 
 /** Seed clearly labelled demo data for one user only, with fresh ids per user. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isValidDate, isValidEmail, validateClient, validateInvoice } from "./validation";
+import { isValidDate, isValidEmail, validateClient, validateInvoice, validatePayment } from "./validation";
 
 describe("validateClient", () => {
   it("requires a name", () => {
@@ -34,6 +34,17 @@ describe("validateInvoice", () => {
     expect(validateInvoice({ ...valid, taxRate: -1 }).taxRate).toBeDefined();
     expect(validateInvoice({ ...valid, discountRate: 101 }).discountRate).toBeDefined();
     expect(validateInvoice({ ...valid, discountRate: Number.NaN }).discountRate).toBeDefined();
+  });
+});
+
+describe("validatePayment", () => {
+  it("accepts a payment within the balance", () => {
+    expect(validatePayment({ amount: 50, balance: 100, paidAt: "2026-11-03" })).toEqual({});
+  });
+  it("rejects zero, negative, and over-balance payments and bad dates", () => {
+    expect(validatePayment({ amount: 0, balance: 100, paidAt: "2026-11-03" }).amount).toBeDefined();
+    expect(validatePayment({ amount: 100.01, balance: 100, paidAt: "2026-11-03" }).amount).toBeDefined();
+    expect(validatePayment({ amount: 50, balance: 100, paidAt: "2026-02-30" }).paidAt).toBeDefined();
   });
 });
 

@@ -42,6 +42,26 @@ export function validateInvoice(input: {
   return errors;
 }
 
+/** A payment must be positive and no larger than the remaining balance. */
+export function validatePayment(input: {
+  amount: number;
+  balance: number;
+  paidAt: string;
+}): Errors {
+  const errors: Errors = {};
+  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+    errors.amount = "Payment must be greater than 0.";
+  } else if (input.amount - input.balance > 0.001) {
+    errors.amount = "Payment cannot be larger than the remaining balance.";
+  }
+  if (!input.paidAt) {
+    errors.paidAt = "Payment date is required.";
+  } else if (!isValidDate(input.paidAt)) {
+    errors.paidAt = "Payment date must be a valid date.";
+  }
+  return errors;
+}
+
 export function isValidDate(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return false;

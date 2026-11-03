@@ -36,6 +36,15 @@ export interface RecurringTemplate {
   userId: string;
 }
 
+/** One recorded part- or full-payment against an invoice. */
+export interface Payment {
+  amount: number;
+  id: string;
+  invoiceId: string;
+  paidAt: string; // YYYY-MM-DD
+  userId: string;
+}
+
 export type InvoiceFilter = "all" | "paid" | "unpaid" | "overdue";
 
 export interface Totals {

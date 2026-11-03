@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { PDFFont } from "pdf-lib";
-import { computeInvoiceTotal, formatInvoiceNumber, formatMoney } from "./invoices";
-import type { Client, Invoice } from "./types";
+import { computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney } from "./invoices";
+import type { Client, Invoice, Payment } from "./types";
 
 /** Word-wrap a line to fit `maxWidth` at the given font/size. */
 function wrapText(
@@ -36,6 +36,7 @@ export async function buildInvoicePdf(
   client: Client | undefined,
   statusLabel: string,
   businessName?: string,
+  payments?: Payment[],
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle(`Invoice — ${invoice.description}`);
@@ -79,6 +80,10 @@ export async function buildInvoicePdf(
   if (invoice.discountRate > 0) draw(`Discount: ${invoice.discountRate}%`, 12);
   if (invoice.taxRate > 0) draw(`Tax: ${invoice.taxRate}% (on the discounted amount)`, 12);
   draw(`Total due: ${formatMoney(computeInvoiceTotal(invoice))}`, 12, true);
+  if (payments && payments.length > 0) {
+    draw(`Paid so far: ${formatMoney(computeAmountPaid(payments))}`, 12);
+    draw(`Remaining balance: ${formatMoney(computeRemainingBalance(invoice, payments))}`, 12, true);
+  }
   draw(`Status: ${statusLabel}`, 12);
   draw(`Issued: ${invoice.issuedDate}`, 12);
   draw(`Due: ${invoice.dueDate}`, 12);
