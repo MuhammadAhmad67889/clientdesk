@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import Reveal from "../../components/Reveal";
+import BillingSection from "../../components/BillingSection";
 import BusinessNameForm from "../../components/BusinessNameForm";
 import ChangePasswordForm from "../../components/ChangePasswordForm";
-import { getSessionUser, getUsage } from "../../lib/data";
+import { getBilling, getSessionUser, getUsage } from "../../lib/data";
+import { isBillingConfigured } from "../../lib/billing";
 import { FREE_CLIENT_LIMIT, FREE_INVOICE_LIMIT, normalizePlan } from "../../lib/plans";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +13,7 @@ export default async function SettingsPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
   const usage = await getUsage(user.id);
+  const billing = await getBilling(user.id);
   const plan = normalizePlan(usage.plan);
   return (
     <Reveal>
@@ -26,7 +29,7 @@ export default async function SettingsPage() {
         {plan === "free" ? (
           <p className="hint" style={{ marginBottom: 0 }}>
             Usage: {usage.clientCount} of {FREE_CLIENT_LIMIT} clients · {usage.invoiceCount} of {FREE_INVOICE_LIMIT} invoices.
-            Demo data counts toward these limits. Pro billing is not live yet — every account is on Free until Phase 2.
+            Demo data counts toward these limits. Pro checkout opens once Stripe is connected in test mode.
           </p>
         ) : (
           <p className="hint" style={{ marginBottom: 0 }}>
@@ -34,6 +37,12 @@ export default async function SettingsPage() {
           </p>
         )}
       </div>
+      <BillingSection
+        billingConfigured={isBillingConfigured()}
+        hasStripeCustomer={billing.hasStripeCustomer}
+        plan={plan}
+        subscriptionStatus={billing.subscriptionStatus}
+      />
       <div className="card">
         <h2>Account</h2>
         <p style={{ margin: 0 }}>Signed in as <strong>{user.email}</strong></p>
