@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
 import { invoicesToCsv } from "../lib/csv";
-import { filterInvoices, formatMoney, isOverdue, todayIso } from "../lib/invoices";
+import { computeInvoiceTotal, filterInvoices, formatMoney, isOverdue, todayIso } from "../lib/invoices";
 import type { Client, Invoice, InvoiceFilter } from "../lib/types";
 import { validateInvoice } from "../lib/validation";
 
@@ -28,6 +28,8 @@ export default function InvoicesClient({
   const [clientId, setClientId] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [discountRate, setDiscountRate] = useState("");
+  const [taxRate, setTaxRate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -48,7 +50,9 @@ export default function InvoicesClient({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const parsedAmount = Number(amount);
-    const errs = validateInvoice({ amount: parsedAmount, clientId, description, dueDate });
+    const parsedDiscount = discountRate === "" ? 0 : Number(discountRate);
+    const parsedTax = taxRate === "" ? 0 : Number(taxRate);
+    const errs = validateInvoice({ amount: parsedAmount, clientId, description, discountRate: parsedDiscount, dueDate, taxRate: parsedTax });
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
     if (saving) return;
@@ -58,7 +62,9 @@ export default function InvoicesClient({
         amount: Math.round(parsedAmount * 100) / 100,
         clientId,
         description: description.trim(),
+        discountRate: parsedDiscount,
         dueDate,
+        taxRate: parsedTax,
       }),
       headers: { "Content-Type": "application/json" },
       method: "POST",
@@ -75,7 +81,7 @@ export default function InvoicesClient({
     }
     const saved = (await res.json()) as Invoice;
     setInvoices((prev) => [...prev, saved]);
-    setClientId(""); setDescription(""); setAmount(""); setDueDate(""); setErrors({});
+    setClientId(""); setDescription(""); setAmount(""); setDiscountRate(""); setTaxRate(""); setDueDate(""); setErrors({});
     setSavedNote("Invoice added.");
   }
 
@@ -149,6 +155,14 @@ export default function InvoicesClient({
             <input type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="450.00" />
             {errors.amount && <span className="error">{errors.amount}</span>}
           </label>
+          <label>Discount (%) — optional
+            <input type="number" min="0" max="100" step="0.01" inputMode="decimal" value={discountRate} onChange={(e) => setDiscountRate(e.target.value)} placeholder="0" />
+            {errors.discountRate && <span className="error">{errors.discountRate}</span>}
+          </label>
+          <label>Tax (%) — optional
+            <input type="number" min="0" max="100" step="0.01" inputMode="decimal" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} placeholder="0" />
+            {errors.taxRate && <span className="error">{errors.taxRate}</span>}
+          </label>
           <label>Due date *
             <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             {errors.dueDate && <span className="error">{errors.dueDate}</span>}
@@ -193,7 +207,7 @@ export default function InvoicesClient({
       ) : (
         <div className="card table-wrap" data-reveal>
           <table>
-            <thead><tr><th>Client</th><th>Description</th><th>Amount</th><th>Status</th><th>Issued</th><th>Due</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Client</th><th>Description</th><th>Amount</th><th>Total</th><th>Status</th><th>Issued</th><th>Due</th><th>Actions</th></tr></thead>
             <tbody>
               {filtered.map((inv) => {
                 const overdue = isOverdue(inv, today);
@@ -202,6 +216,7 @@ export default function InvoicesClient({
                     <td data-label="Client">{byId.get(inv.clientId)?.name ?? "Unknown client"}</td>
                     <td data-label="Description">{inv.description}</td>
                     <td data-label="Amount">{formatMoney(inv.amount)}</td>
+                    <td data-label="Total">{formatMoney(computeInvoiceTotal(inv))}</td>
                     <td data-label="Status">
                       <StatusBadge status={overdue ? "overdue" : inv.status} />
                     </td>

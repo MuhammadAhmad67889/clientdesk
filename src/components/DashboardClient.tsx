@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
-import { computeTotals, formatMoney, isOverdue, sortInvoicesRecent, todayIso } from "../lib/invoices";
+import { computeInvoiceTotal, computeTotals, formatMoney, isOverdue, sortInvoicesRecent, todayIso } from "../lib/invoices";
 import { computeMonthlyOverview } from "../lib/monthly";
 import type { Client, Invoice } from "../lib/types";
 
@@ -137,7 +137,7 @@ export default function DashboardClient({
                   <span>
                     <Link href="/invoices">{inv.description}</Link> — {byId.get(inv.clientId)?.name ?? "Unknown client"}
                   </span>
-                  <span><strong>{formatMoney(inv.amount)}</strong> · due {inv.dueDate}</span>
+                  <span><strong>{formatMoney(computeInvoiceTotal(inv))}</strong> · due {inv.dueDate}</span>
                 </li>
               ))}
             </ul>
@@ -184,7 +184,7 @@ export default function DashboardClient({
                   <tr key={inv.id}>
                     <td data-label="Client">{byId.get(inv.clientId)?.name ?? "Unknown client"}</td>
                     <td data-label="Description">{inv.description}</td>
-                    <td data-label="Amount">{formatMoney(inv.amount)}</td>
+                    <td data-label="Amount">{formatMoney(computeInvoiceTotal(inv))}</td>
                     <td data-label="Status">
                       <StatusBadge status={isOverdue(inv, today) ? "overdue" : inv.status} />
                     </td>
