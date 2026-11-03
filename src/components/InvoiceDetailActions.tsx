@@ -40,6 +40,7 @@ export default function InvoiceDetailActions({ invoice }: { invoice: Invoice }) 
         {invoice.status === "paid" ? "Mark unpaid" : "Mark paid"}
       </button>
       <button onClick={() => window.print()} type="button">Print / save as PDF</button>
+      <a className="btn" href={`/api/invoices/${invoice.id}/pdf`}>Download PDF</a>
       {confirmDelete ? (
         <>
           <button className="danger" onClick={deleteOne} type="button">Confirm delete</button>
