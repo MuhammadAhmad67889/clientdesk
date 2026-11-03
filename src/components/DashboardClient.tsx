@@ -4,19 +4,22 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
-import { computeInvoiceTotal, computeTotals, formatInvoiceNumber, formatMoney, isOverdue, sortInvoicesRecent, todayIso } from "../lib/invoices";
+import { computeClientTotals, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney, isOverdue, sortInvoicesRecent, todayIso } from "../lib/invoices";
 import { computeMonthlyOverview } from "../lib/monthly";
-import type { Client, Invoice } from "../lib/types";
+import type { Client, Invoice, Payment } from "../lib/types";
 
 export default function DashboardClient({
   initialClients,
   initialInvoices,
+  initialPayments,
 }: {
   initialClients: Client[];
   initialInvoices: Invoice[];
+  initialPayments: Payment[];
 }) {
   const [clients, setClients] = useState(initialClients);
   const [invoices, setInvoices] = useState(initialInvoices);
+  const [payments, setPayments] = useState(initialPayments);
   const [email, setEmail] = useState<string | null>(null);
   const [resetDone, setResetDone] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -36,10 +39,15 @@ export default function DashboardClient({
     }
     setClients(await cRes.json());
     setInvoices(await iRes.json());
+    // Demo reset reseeds clients and invoices with no payments.
+    setPayments([]);
   }
 
   const today = todayIso();
-  const totals = computeTotals(invoices, clients, today);
+  const totals = computeClientTotals(invoices, payments, today);
+  const balanceByInvoice = new Map<string, number>(
+    invoices.map((inv) => [inv.id, computeRemainingBalance(inv, payments.filter((p) => p.invoiceId === inv.id))]),
+  );
   const byId = new Map(clients.map((c) => [c.id, c]));
   const recent = sortInvoicesRecent(invoices).slice(0, 5);
   const overdue = invoices
@@ -89,8 +97,8 @@ export default function DashboardClient({
         <div className="stat" data-reveal><span>Total outstanding</span><strong>{formatMoney(totals.totalOutstanding)}</strong><small>{unpaidCount} unpaid invoice{unpaidCount === 1 ? "" : "s"}</small></div>
         <div className="stat" data-reveal><span>Total paid</span><strong>{formatMoney(totals.totalPaid)}</strong></div>
         <div className="stat" data-reveal><span>Overdue</span><strong>{totals.overdueCount} · {formatMoney(totals.overdueAmount)}</strong><small>Unpaid and past due</small></div>
-        <div className="stat" data-reveal><span>Clients</span><strong>{totals.clientCount}</strong></div>
-        <div className="stat" data-reveal><span>Invoices</span><strong>{totals.invoiceCount}</strong></div>
+        <div className="stat" data-reveal><span>Clients</span><strong>{clients.length}</strong></div>
+        <div className="stat" data-reveal><span>Invoices</span><strong>{invoices.length}</strong></div>
       </div>
 
       <div className="card" data-reveal>
@@ -137,7 +145,7 @@ export default function DashboardClient({
                   <span>
                     <Link href="/invoices">{inv.description}</Link> — {byId.get(inv.clientId)?.name ?? "Unknown client"}
                   </span>
-                  <span><strong>{formatMoney(computeInvoiceTotal(inv))}</strong> · due {inv.dueDate}</span>
+                  <span><strong>{formatMoney(balanceByInvoice.get(inv.id) ?? computeInvoiceTotal(inv))}</strong> · due {inv.dueDate}</span>
                 </li>
               ))}
             </ul>
