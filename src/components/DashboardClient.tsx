@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import OnboardingCard from "./OnboardingCard";
 import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
 import { computeClientTotals, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney, isOverdue, sortInvoicesRecent, todayIso } from "../lib/invoices";
@@ -92,6 +93,13 @@ export default function DashboardClient({
           <Link className="btn" href="/invoices">Add invoice</Link>
         </div>
       </div>
+
+      <OnboardingCard
+        clientCount={clients.length}
+        invoiceCount={invoices.length}
+        paymentCount={payments.length}
+        paymentHref={invoices.find((i) => i.status === "unpaid") ? `/invoices/${invoices.find((i) => i.status === "unpaid")!.id}` : "/invoices"}
+      />
 
       <div className="stats">
         <div className="stat" data-reveal><span>Total outstanding</span><strong>{formatMoney(totals.totalOutstanding)}</strong><small>{unpaidCount} unpaid invoice{unpaidCount === 1 ? "" : "s"}</small></div>

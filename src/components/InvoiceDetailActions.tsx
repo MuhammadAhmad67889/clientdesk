@@ -8,6 +8,7 @@ export default function InvoiceDetailActions({ invoice }: { invoice: Invoice }) 
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   async function togglePaid() {
     if (busy) return;
@@ -37,6 +38,7 @@ export default function InvoiceDetailActions({ invoice }: { invoice: Invoice }) 
   async function duplicate() {
     if (busy) return;
     setBusy(true);
+    setError("");
     const res = await fetch(`/api/invoices/${invoice.id}/duplicate`, { method: "POST" });
     setBusy(false);
     if (res.status === 401) {
@@ -46,10 +48,14 @@ export default function InvoiceDetailActions({ invoice }: { invoice: Invoice }) 
     if (res.ok) {
       const copy = (await res.json()) as { id: string };
       router.push(`/invoices/${copy.id}`);
+      return;
     }
+    const data = (await res.json().catch(() => null)) as { errors?: { form?: string } } | null;
+    setError(data?.errors?.form ?? "Could not duplicate the invoice.");
   }
 
   return (
+    <>
     <div className="actions page-actions no-print">
       <button disabled={busy} onClick={togglePaid} type="button">
         {invoice.status === "paid" ? "Mark unpaid" : "Mark paid"}
@@ -66,5 +72,7 @@ export default function InvoiceDetailActions({ invoice }: { invoice: Invoice }) 
         <button className="danger" onClick={() => setConfirmDelete(true)} type="button">Delete</button>
       )}
     </div>
+    {error && <p className="error" role="alert">{error}</p>}
+    </>
   );
 }

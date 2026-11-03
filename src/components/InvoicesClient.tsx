@@ -179,7 +179,8 @@ export default function InvoicesClient({
       return;
     }
     if (!res.ok) {
-      setRNote("Could not generate due invoices.");
+      const data = (await res.json().catch(() => null)) as { errors?: { form?: string } } | null;
+      setRNote(data?.errors?.form ?? "Could not generate due invoices.");
       return;
     }
     const data = (await res.json()) as { created: number };
