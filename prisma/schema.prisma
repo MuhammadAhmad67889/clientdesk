@@ -56,10 +56,12 @@ model Invoice {
   clientId    String
   createdAt   DateTime @default(now())
   description String
+  discountRate Float    @default(0)
   dueDate     String
   id          String   @id @default(cuid())
   issuedDate  String
   status      String   @default("unpaid")
+  taxRate     Float    @default(0)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
 
