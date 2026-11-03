@@ -16,8 +16,16 @@ export async function POST(req: NextRequest) {
   if (user.plan === "pro" || user.plan === "business") {
     return NextResponse.json({ error: "Already on a paid plan." }, { status: 400 });
   }
+  // Checked again here instead of asserting: if the env vars vanished
+  // between the check above and this line, the route says so instead
+  // of crashing on a missing key.
+  const secret = stripeSecretKey();
+  const priceId = stripeProPriceId();
+  if (!secret || !priceId) {
+    return NextResponse.json({ error: "Billing is not set up yet." }, { status: 503 });
+  }
 
-  const stripe = new Stripe(stripeSecretKey()!);
+  const stripe = new Stripe(secret);
   const db = getPrisma();
   let customerId: string | null = null;
   const existing = await db.user.findUnique({ where: { id: user.id } });
@@ -34,7 +42,7 @@ export async function POST(req: NextRequest) {
   const session = await stripe.checkout.sessions.create({
     cancel_url: `${req.nextUrl.origin}/pricing`,
     customer: customerId,
-    line_items: [{ price: stripeProPriceId()!, quantity: 1 }],
+    line_items: [{ price: priceId, quantity: 1 }],
     metadata: { userId: user.id },
     mode: "subscription",
     success_url: `${req.nextUrl.origin}/billing/success`,
