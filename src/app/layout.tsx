@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Shell from "../components/Shell";
+import ToastProvider from "../components/Toast";
 import { getSessionUser } from "../lib/data";
 import "./globals.css";
 
@@ -21,7 +22,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className={inter.variable}>
-        {user ? <Shell>{children}</Shell> : <main>{children}</main>}
+        <ToastProvider>{user ? <Shell>{children}</Shell> : <main>{children}</main>}</ToastProvider>
       </body>
     </html>
   );
