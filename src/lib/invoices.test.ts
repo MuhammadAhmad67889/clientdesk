@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  computeRemainingBalance,
   computeInvoiceTotal,
   formatInvoiceNumber,
   computeTotals,
@@ -67,6 +68,19 @@ describe("computeInvoiceTotal", () => {
   });
   it("rounds to cents", () => {
     expect(computeInvoiceTotal(inv({ amount: 99.99, id: "1", taxRate: 7.5 }))).toBe(107.49);
+  });
+});
+
+describe("computeRemainingBalance", () => {
+  const payments = [
+    { amount: 40, id: "p1", invoiceId: "1", paidAt: "2026-11-01", userId: "u1" },
+    { amount: 10, id: "p2", invoiceId: "1", paidAt: "2026-11-02", userId: "u1" },
+  ];
+  it("subtracts recorded payments from the invoice total", () => {
+    expect(computeRemainingBalance(inv({ amount: 200, discountRate: 10, id: "1", taxRate: 10 }), payments)).toBe(148);
+  });
+  it("never goes below zero", () => {
+    expect(computeRemainingBalance(inv({ id: "1" }), [{ ...payments[0], amount: 150 }])).toBe(0);
   });
 });
 
