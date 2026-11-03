@@ -69,6 +69,57 @@ export function computeTotals(
   };
 }
 
+export interface ClientTotals {
+  overdueAmount: number;
+  overdueCount: number;
+  totalBilled: number;
+  totalOutstanding: number;
+  totalPaid: number;
+}
+
+/**
+ * Payment-aware totals for one client's invoices: billed is the sum of
+ * invoice totals, paid is the sum of recorded payments, outstanding is
+ * the sum of remaining balances, and overdue counts only invoices still
+ * past due with a balance left. Unlike computeTotals, a part-paid
+ * invoice counts as part-paid, not as fully outstanding.
+ */
+export function computeClientTotals(
+  invoices: Invoice[],
+  payments: Payment[],
+  today: string,
+): ClientTotals {
+  const byInvoice = new Map<string, Payment[]>();
+  for (const p of payments) {
+    const list = byInvoice.get(p.invoiceId) ?? [];
+    list.push(p);
+    byInvoice.set(p.invoiceId, list);
+  }
+  let totalBilled = 0;
+  let totalPaid = 0;
+  let totalOutstanding = 0;
+  let overdueCount = 0;
+  let overdueAmount = 0;
+  for (const inv of invoices) {
+    const mine = byInvoice.get(inv.id) ?? [];
+    const balance = computeRemainingBalance(inv, mine);
+    totalBilled += computeInvoiceTotal(inv);
+    totalPaid += computeAmountPaid(mine);
+    totalOutstanding += balance;
+    if (balance > 0 && isOverdue(inv, today)) {
+      overdueCount += 1;
+      overdueAmount += balance;
+    }
+  }
+  return {
+    overdueAmount: roundMoney(overdueAmount),
+    overdueCount,
+    totalBilled: roundMoney(totalBilled),
+    totalOutstanding: roundMoney(totalOutstanding),
+    totalPaid: roundMoney(totalPaid),
+  };
+}
+
 export function roundMoney(n: number): number {
   return Math.round(n * 100) / 100;
 }

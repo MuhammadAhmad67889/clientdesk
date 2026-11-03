@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  computeClientTotals,
   computeRemainingBalance,
   computeInvoiceTotal,
   formatInvoiceNumber,
@@ -81,6 +82,30 @@ describe("computeRemainingBalance", () => {
   });
   it("never goes below zero", () => {
     expect(computeRemainingBalance(inv({ id: "1" }), [{ ...payments[0], amount: 150 }])).toBe(0);
+  });
+});
+
+describe("computeClientTotals", () => {
+  const payments = [
+    { amount: 100, id: "p1", invoiceId: "1", paidAt: "2026-10-20", userId: "u1" },
+  ];
+  it("counts part-paid invoices as part-paid, not fully outstanding", () => {
+    const totals = computeClientTotals([inv({ amount: 400, id: "1" })], payments, "2026-10-29");
+    expect(totals).toEqual({ overdueAmount: 0, overdueCount: 0, totalBilled: 400, totalOutstanding: 300, totalPaid: 100 });
+  });
+  it("counts only the remaining balance of overdue invoices", () => {
+    const totals = computeClientTotals(
+      [inv({ amount: 400, dueDate: "2026-10-01", id: "1" })],
+      payments,
+      "2026-10-29",
+    );
+    expect(totals.overdueCount).toBe(1);
+    expect(totals.overdueAmount).toBe(300);
+  });
+  it("ignores payments for other invoices", () => {
+    const totals = computeClientTotals([inv({ amount: 400, id: "2" })], payments, "2026-10-29");
+    expect(totals.totalPaid).toBe(0);
+    expect(totals.totalOutstanding).toBe(400);
   });
 });
 
