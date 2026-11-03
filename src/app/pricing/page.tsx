@@ -17,7 +17,7 @@ const tiers = [
   },
   {
     cta: "Start free, upgrade later",
-    features: ["Unlimited clients and invoices", "Everything in Free", "AI invoice and reminder drafts (coming soon)", "Priority support"],
+    features: ["Unlimited clients and invoices", "Everything in Free"],
     name: "Pro",
     note: "Billing isn't live yet — every account is on Free until it opens.",
     price: "$9 / month",
