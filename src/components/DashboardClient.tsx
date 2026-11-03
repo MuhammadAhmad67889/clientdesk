@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
-import { computeInvoiceTotal, computeTotals, formatMoney, isOverdue, sortInvoicesRecent, todayIso } from "../lib/invoices";
+import { computeInvoiceTotal, computeTotals, formatInvoiceNumber, formatMoney, isOverdue, sortInvoicesRecent, todayIso } from "../lib/invoices";
 import { computeMonthlyOverview } from "../lib/monthly";
 import type { Client, Invoice } from "../lib/types";
 
@@ -178,10 +178,11 @@ export default function DashboardClient({
         ) : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Client</th><th>Description</th><th>Amount</th><th>Status</th><th>Due</th></tr></thead>
+              <thead><tr><th>Number</th><th>Client</th><th>Description</th><th>Amount</th><th>Status</th><th>Due</th></tr></thead>
               <tbody>
                 {recent.map((inv) => (
                   <tr key={inv.id}>
+                    <td data-label="Number">{formatInvoiceNumber(inv.number)}</td>
                     <td data-label="Client">{byId.get(inv.clientId)?.name ?? "Unknown client"}</td>
                     <td data-label="Description">{inv.description}</td>
                     <td data-label="Amount">{formatMoney(computeInvoiceTotal(inv))}</td>

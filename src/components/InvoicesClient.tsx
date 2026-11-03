@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
 import { invoicesToCsv } from "../lib/csv";
-import { computeInvoiceTotal, filterInvoices, formatMoney, isOverdue, todayIso } from "../lib/invoices";
+import { computeInvoiceTotal, filterInvoices, formatInvoiceNumber, formatMoney, isOverdue, todayIso } from "../lib/invoices";
 import type { Client, Invoice, InvoiceFilter, RecurringTemplate } from "../lib/types";
 import { validateInvoice } from "../lib/validation";
 
@@ -298,7 +298,7 @@ export default function InvoicesClient({
           <div style={{ marginTop: 16 }}>
             {recurring.map((t) => (
               <p key={t.id} style={{ margin: "8px 0" }}>
-                {t.description} — {byId.get(t.clientId)?.name ?? "Unknown client"} · {formatMoney(computeInvoiceTotal({ ...t, dueDate: t.nextDueDate, id: t.id, issuedDate: today, status: "unpaid" }))} · next due {t.nextDueDate}{" "}
+                {t.description} — {byId.get(t.clientId)?.name ?? "Unknown client"} · {formatMoney(computeInvoiceTotal({ ...t, dueDate: t.nextDueDate, id: t.id, issuedDate: today, number: null, status: "unpaid" }))} · next due {t.nextDueDate}{" "}
                 <button onClick={() => stopRecurring(t.id)} type="button">Stop</button>
               </p>
             ))}
@@ -341,12 +341,13 @@ export default function InvoicesClient({
       ) : (
         <div className="card table-wrap" data-reveal>
           <table>
-            <thead><tr><th>Client</th><th>Description</th><th>Amount</th><th>Total</th><th>Status</th><th>Issued</th><th>Due</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Number</th><th>Client</th><th>Description</th><th>Amount</th><th>Total</th><th>Status</th><th>Issued</th><th>Due</th><th>Actions</th></tr></thead>
             <tbody>
               {filtered.map((inv) => {
                 const overdue = isOverdue(inv, today);
                 return (
                   <tr key={inv.id}>
+                    <td data-label="Number">{formatInvoiceNumber(inv.number)}</td>
                     <td data-label="Client">{byId.get(inv.clientId)?.name ?? "Unknown client"}</td>
                     <td data-label="Description">{inv.description}</td>
                     <td data-label="Amount">{formatMoney(inv.amount)}</td>
