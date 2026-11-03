@@ -16,14 +16,18 @@ export async function POST(req: NextRequest) {
   const description = typeof body?.description === "string" ? body.description : "";
   const dueDate = typeof body?.dueDate === "string" ? body.dueDate : "";
   const amount = Number(body?.amount);
-  const errors = validateInvoice({ amount, clientId, description, dueDate });
+  const discountRate = body?.discountRate === "" || body?.discountRate === undefined ? 0 : Number(body?.discountRate);
+  const taxRate = body?.taxRate === "" || body?.taxRate === undefined ? 0 : Number(body?.taxRate);
+  const errors = validateInvoice({ amount, clientId, description, discountRate, dueDate, taxRate });
   if (Object.keys(errors).length > 0) return NextResponse.json({ errors }, { status: 400 });
   const invoice = await createInvoice(user.id, {
     amount: Math.round(amount * 100) / 100,
     clientId,
     description: description.trim(),
+    discountRate,
     dueDate,
     status: "unpaid",
+    taxRate,
   });
   if (!invoice) return NextResponse.json({ error: "Client not found." }, { status: 404 });
   return NextResponse.json(invoice, { status: 201 });
