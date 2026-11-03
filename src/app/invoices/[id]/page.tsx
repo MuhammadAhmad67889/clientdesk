@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import Reveal from "../../../components/Reveal";
 import InvoiceDetailActions from "../../../components/InvoiceDetailActions";
+import RecordPaymentForm from "../../../components/RecordPaymentForm";
 import { StatusBadge } from "../../../components/ui";
-import { getSessionUser, listClients, listInvoices } from "../../../lib/data";
-import { computeInvoiceTotal, formatInvoiceNumber, formatMoney, isOverdue, todayIso } from "../../../lib/invoices";
+import { getSessionUser, listClients, listInvoices, listPaymentsForInvoice } from "../../../lib/data";
+import { computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney, isOverdue, todayIso } from "../../../lib/invoices";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,11 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   const [clients, invoices] = await Promise.all([listClients(user.id), listInvoices(user.id)]);
   const invoice = invoices.find((i) => i.id === id);
   if (!invoice) notFound();
+  const payments = await listPaymentsForInvoice(user.id, id);
   const client = clients.find((c) => c.id === invoice.clientId);
   const today = todayIso();
+  const paid = computeAmountPaid(payments);
+  const balance = computeRemainingBalance(invoice, payments);
 
   return (
     <Reveal>
@@ -41,6 +45,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         {invoice.discountRate > 0 && <p>Discount: {invoice.discountRate}%</p>}
         {invoice.taxRate > 0 && <p>Tax: {invoice.taxRate}% (on the discounted amount)</p>}
         <p>Total due: <strong>{formatMoney(computeInvoiceTotal(invoice))}</strong></p>
+        <p>Paid so far: <strong>{formatMoney(paid)}</strong></p>
+        <p>Remaining balance: <strong>{formatMoney(balance)}</strong></p>
         <p style={{ marginBottom: 0 }}>
           Status: {isOverdue(invoice, today) ? "Overdue — unpaid and past its due date." : invoice.status === "paid" ? "Paid." : "Unpaid."}
         </p>
@@ -48,6 +54,19 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           “Download PDF” generates a real PDF on the server for this invoice.
           “Print / save as PDF” uses your browser print dialog instead.
         </p>
+      </div>
+      <div className="card" data-reveal>
+        <h2 style={{ marginTop: 0 }}>Payments</h2>
+        {payments.length === 0 ? (
+          <p className="hint" style={{ margin: 0 }}>No payments recorded yet.</p>
+        ) : (
+          <ul style={{ margin: "0 0 16px", paddingLeft: 20 }}>
+            {payments.map((p) => (
+              <li key={p.id}>{p.paidAt} — {formatMoney(p.amount)}</li>
+            ))}
+          </ul>
+        )}
+        <RecordPaymentForm balance={balance} invoiceId={invoice.id} />
       </div>
     </Reveal>
   );
