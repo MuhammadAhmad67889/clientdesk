@@ -33,44 +33,53 @@ export default function BillingSection({
     window.location.href = data.url;
   }
 
-  return (
-    <div className="card">
-      <h2>Billing</h2>
-      {!billingConfigured ? (
+  if (!billingConfigured) {
+    return (
+      <div className="card">
+        <h2>Billing</h2>
         <p className="hint" style={{ marginBottom: 0 }}>
           Billing is not set up yet. Pro checkout opens once Stripe is
           connected in test mode — until then every account stays on Free
           and nothing here charges you.
         </p>
-      ) : plan === "pro" || plan === "business" ? (
-        <>
-          <p style={{ margin: 0 }}>
-            You are on <strong>{plan === "pro" ? "Pro" : "Business"}</strong>
-            {subscriptionStatus ? ` (subscription ${subscriptionStatus})` : ""}.
-          </p>
-          <p className="hint">
-            Manage or cancel your subscription in Stripe&apos;s portal.
-            Cancelling keeps your data readable; the free limits apply
-            again once the subscription ends.
-          </p>
-          <button disabled={busy || !hasStripeCustomer} onClick={() => go("/api/billing/portal")} type="button">
-            {busy ? "Opening…" : "Manage billing"}
-          </button>
-        </>
-      ) : (
-        <>
-          <p style={{ margin: 0 }}>
-            You are on the <strong>Free</strong> plan.
-          </p>
-          <p className="hint">
-            Pro is $9/month with unlimited clients and invoices. Checkout
-            runs in Stripe test mode — use a test card, no real money moves.
-          </p>
-          <button className="primary" disabled={busy} onClick={() => go("/api/billing/checkout")} type="button">
-            {busy ? "Starting checkout…" : "Upgrade to Pro"}
-          </button>
-        </>
-      )}
+      </div>
+    );
+  }
+
+  if (plan === "pro" || plan === "business") {
+    return (
+      <div className="card">
+        <h2>Billing</h2>
+        <p style={{ margin: 0 }}>
+          You are on <strong>{plan === "pro" ? "Pro" : "Business"}</strong>
+          {subscriptionStatus ? ` (subscription ${subscriptionStatus})` : ""}.
+        </p>
+        <p className="hint">
+          Manage or cancel your subscription in Stripe&apos;s portal.
+          Cancelling keeps your data readable; the free limits apply
+          again once the subscription ends.
+        </p>
+        <button disabled={busy || !hasStripeCustomer} onClick={() => go("/api/billing/portal")} type="button">
+          {busy ? "Opening…" : "Manage billing"}
+        </button>
+        {error && <p className="error" role="alert">{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <h2>Billing</h2>
+      <p style={{ margin: 0 }}>
+        You are on the <strong>Free</strong> plan.
+      </p>
+      <p className="hint">
+        Pro is $9/month with unlimited clients and invoices. Checkout
+        runs in Stripe test mode — use a test card, no real money moves.
+      </p>
+      <button className="primary" disabled={busy} onClick={() => go("/api/billing/checkout")} type="button">
+        {busy ? "Starting checkout…" : "Upgrade to Pro"}
+      </button>
       {error && <p className="error" role="alert">{error}</p>}
     </div>
   );
