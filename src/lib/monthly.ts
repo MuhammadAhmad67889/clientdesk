@@ -1,5 +1,5 @@
 import type { Invoice } from "./types";
-import { roundMoney } from "./invoices";
+import { computeInvoiceTotal, roundMoney } from "./invoices";
 
 export interface MonthTotal {
   key: string;
@@ -31,8 +31,8 @@ export function computeMonthlyOverview(
   for (const inv of invoices) {
     const month = byKey.get(inv.issuedDate.slice(0, 7));
     if (!month) continue;
-    if (inv.status === "paid") month.paid += inv.amount;
-    else month.outstanding += inv.amount;
+    if (inv.status === "paid") month.paid += computeInvoiceTotal(inv);
+    else month.outstanding += computeInvoiceTotal(inv);
   }
   for (const month of list) {
     month.paid = roundMoney(month.paid);

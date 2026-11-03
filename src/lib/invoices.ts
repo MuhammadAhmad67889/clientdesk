@@ -18,6 +18,16 @@ export function isOverdue(invoice: Invoice, today: string): boolean {
   return invoice.status === "unpaid" && invoice.dueDate < today;
 }
 
+/**
+ * Total due for one invoice: discount first, then tax on the discounted
+ * amount, rounded to cents. With 0% tax and 0% discount this is just
+ * the amount, so old invoices are unaffected.
+ */
+export function computeInvoiceTotal(invoice: Invoice): number {
+  const discounted = invoice.amount * (1 - invoice.discountRate / 100);
+  return roundMoney(discounted * (1 + invoice.taxRate / 100));
+}
+
 export function computeTotals(
   invoices: Invoice[],
   clients: Client[],
@@ -28,13 +38,14 @@ export function computeTotals(
   let overdueCount = 0;
   let overdueAmount = 0;
   for (const inv of invoices) {
+    const total = computeInvoiceTotal(inv);
     if (inv.status === "paid") {
-      totalPaid += inv.amount;
+      totalPaid += total;
     } else {
-      totalOutstanding += inv.amount;
+      totalOutstanding += total;
       if (isOverdue(inv, today)) {
         overdueCount += 1;
-        overdueAmount += inv.amount;
+        overdueAmount += total;
       }
     }
   }
@@ -139,6 +150,8 @@ export function seedData(today: string): { clients: Client[]; invoices: Invoice[
       amount: 450,
       clientId: "seed-client-1",
       description: "Website redesign — homepage and menu pages",
+      discountRate: 0,
+      taxRate: 0,
       dueDate: addDays(today, -5),
       id: "seed-invoice-1",
       issuedDate: addDays(today, -20),
@@ -148,6 +161,8 @@ export function seedData(today: string): { clients: Client[]; invoices: Invoice[
       amount: 1200,
       clientId: "seed-client-2",
       description: "Booking site build, milestone 1",
+      discountRate: 0,
+      taxRate: 0,
       dueDate: addDays(today, 12),
       id: "seed-invoice-2",
       issuedDate: addDays(today, -8),
@@ -157,6 +172,8 @@ export function seedData(today: string): { clients: Client[]; invoices: Invoice[
       amount: 300,
       clientId: "seed-client-3",
       description: "Portfolio site — content and image updates",
+      discountRate: 0,
+      taxRate: 0,
       dueDate: addDays(today, -2),
       id: "seed-invoice-3",
       issuedDate: addDays(today, -15),
@@ -166,6 +183,8 @@ export function seedData(today: string): { clients: Client[]; invoices: Invoice[
       amount: 850,
       clientId: "seed-client-1",
       description: "Online ordering page",
+      discountRate: 0,
+      taxRate: 0,
       dueDate: addDays(today, 5),
       id: "seed-invoice-4",
       issuedDate: addDays(today, -3),
@@ -175,6 +194,8 @@ export function seedData(today: string): { clients: Client[]; invoices: Invoice[
       amount: 600,
       clientId: "seed-client-2",
       description: "Maintenance — January",
+      discountRate: 0,
+      taxRate: 0,
       dueDate: addDays(today, -30),
       id: "seed-invoice-5",
       issuedDate: addDays(today, -35),

@@ -18,13 +18,21 @@ export function validateInvoice(input: {
   amount: number;
   clientId: string;
   description: string;
+  discountRate: number;
   dueDate: string;
+  taxRate: number;
 }): Errors {
   const errors: Errors = {};
   if (!input.clientId) errors.clientId = "Choose a client.";
   if (!input.description.trim()) errors.description = "Description is required.";
   if (!Number.isFinite(input.amount) || input.amount <= 0) {
     errors.amount = "Amount must be greater than 0.";
+  }
+  if (!Number.isFinite(input.discountRate) || input.discountRate < 0 || input.discountRate > 100) {
+    errors.discountRate = "Discount must be between 0 and 100%.";
+  }
+  if (!Number.isFinite(input.taxRate) || input.taxRate < 0 || input.taxRate > 100) {
+    errors.taxRate = "Tax must be between 0 and 100%.";
   }
   if (!input.dueDate) {
     errors.dueDate = "Due date is required.";

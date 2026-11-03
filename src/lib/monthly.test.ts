@@ -3,7 +3,7 @@ import { computeMonthlyOverview } from "./monthly";
 import type { Invoice } from "./types";
 
 function invoice(issuedDate: string, amount: number, status: "paid" | "unpaid"): Invoice {
-  return { amount, clientId: "c1", description: "Test", dueDate: "2026-11-20", id: `inv-${issuedDate}-${status}`, issuedDate, status };
+  return { amount, clientId: "c1", description: "Test", discountRate: 0, dueDate: "2026-11-20", id: `inv-${issuedDate}-${status}`, issuedDate, status, taxRate: 0 };
 }
 
 describe("computeMonthlyOverview", () => {

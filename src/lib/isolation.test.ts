@@ -66,7 +66,7 @@ describe("per-user isolation (real Postgres via Prisma)", () => {
     const clientA = await createClient(userA.id, { name: "A Client" }, db);
     await createInvoice(
       userA.id,
-      { amount: 100, clientId: clientA.id, description: "Work for A", dueDate: "2026-11-01", status: "unpaid" },
+      { amount: 100, clientId: clientA.id, description: "Work for A", discountRate: 0, dueDate: "2026-11-01", status: "unpaid", taxRate: 0 },
       db,
     );
     await seedDemoForUser(userB.id, db);
@@ -85,7 +85,7 @@ describe("per-user isolation (real Postgres via Prisma)", () => {
     expect(
       await createInvoice(
         userB.id,
-        { amount: 50, clientId: clientA.id, description: "Nope", dueDate: "2026-11-01", status: "unpaid" },
+        { amount: 50, clientId: clientA.id, description: "Nope", discountRate: 0, dueDate: "2026-11-01", status: "unpaid", taxRate: 0 },
         db,
       ),
     ).toBeNull();

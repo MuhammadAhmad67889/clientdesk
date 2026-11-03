@@ -38,19 +38,23 @@ function toInvoice(row: {
   amount: number;
   clientId: string;
   description: string;
+  discountRate: number;
   dueDate: string;
   id: string;
   issuedDate: string;
   status: string;
+  taxRate: number;
 }): Invoice {
   return {
     amount: row.amount,
     clientId: row.clientId,
     description: row.description,
+    discountRate: row.discountRate,
     dueDate: row.dueDate,
     id: row.id,
     issuedDate: row.issuedDate,
     status: row.status === "paid" ? "paid" : "unpaid",
+    taxRate: row.taxRate,
   };
 }
 
@@ -139,7 +143,7 @@ export async function deleteClient(userId: string, id: string, db: PrismaClient 
 
 export async function createInvoice(
   userId: string,
-  input: { amount: number; clientId: string; description: string; dueDate: string; status: "paid" | "unpaid" },
+  input: { amount: number; clientId: string; description: string; discountRate: number; dueDate: string; status: "paid" | "unpaid"; taxRate: number },
   db: PrismaClient = getPrisma(),
 ): Promise<Invoice | null> {
   // The client must belong to this user too.
@@ -196,9 +200,11 @@ export async function seedDemoForUser(userId: string, db: PrismaClient = getPris
         amount: inv.amount,
         clientId,
         description: inv.description,
+        discountRate: inv.discountRate,
         dueDate: inv.dueDate,
         issuedDate: inv.issuedDate,
         status: inv.status,
+        taxRate: inv.taxRate,
         userId,
       },
     });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  computeInvoiceTotal,
   computeTotals,
   filterClients,
   filterInvoices,
@@ -19,9 +20,11 @@ function inv(partial: Partial<Invoice> & { id: string }): Invoice {
     amount: 100,
     clientId: "c1",
     description: "Work",
+    discountRate: 0,
     dueDate: "2026-11-01",
     issuedDate: "2026-10-20",
     status: "unpaid",
+    taxRate: 0,
     ...partial,
   };
 }
@@ -38,6 +41,19 @@ describe("isOverdue", () => {
   });
   it("paid invoice past its due date is not overdue", () => {
     expect(isOverdue(inv({ dueDate: "2026-10-01", id: "1", status: "paid" }), TODAY)).toBe(false);
+  });
+});
+
+describe("computeInvoiceTotal", () => {
+  it("is the amount with no tax or discount", () => {
+    expect(computeInvoiceTotal(inv({ id: "1" }))).toBe(100);
+  });
+  it("applies discount first, then tax on the discounted amount", () => {
+    // 200 − 10% = 180, then + 10% tax = 198.
+    expect(computeInvoiceTotal(inv({ amount: 200, discountRate: 10, id: "1", taxRate: 10 }))).toBe(198);
+  });
+  it("rounds to cents", () => {
+    expect(computeInvoiceTotal(inv({ amount: 99.99, id: "1", taxRate: 7.5 }))).toBe(107.49);
   });
 });
 

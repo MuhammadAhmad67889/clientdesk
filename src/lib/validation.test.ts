@@ -14,7 +14,7 @@ describe("validateClient", () => {
 });
 
 describe("validateInvoice", () => {
-  const valid = { amount: 100, clientId: "c1", description: "Work", dueDate: "2026-11-01" };
+  const valid = { amount: 100, clientId: "c1", description: "Work", discountRate: 0, dueDate: "2026-11-01", taxRate: 0 };
   it("accepts a valid invoice", () => {
     expect(validateInvoice(valid)).toEqual({});
   });
@@ -29,6 +29,12 @@ describe("validateInvoice", () => {
     expect(validateInvoice({ ...valid, dueDate: "" }).dueDate).toBeDefined();
     expect(validateInvoice({ ...valid, dueDate: "not-a-date" }).dueDate).toBeDefined();
   });
+  it("rejects tax and discount outside 0–100%", () => {
+    expect(validateInvoice({ ...valid, taxRate: 101 }).taxRate).toBeDefined();
+    expect(validateInvoice({ ...valid, taxRate: -1 }).taxRate).toBeDefined();
+    expect(validateInvoice({ ...valid, discountRate: 101 }).discountRate).toBeDefined();
+    expect(validateInvoice({ ...valid, discountRate: Number.NaN }).discountRate).toBeDefined();
+  });
 });
 
 describe("isValidDate", () => {
@@ -39,7 +45,7 @@ describe("isValidDate", () => {
     expect(isValidDate("2026-13-01")).toBe(false);
     expect(isValidDate("2026-02-28")).toBe(true);
     expect(isValidDate("2024-02-29")).toBe(true);
-    expect(validateInvoice({ amount: 100, clientId: "c1", description: "Work", dueDate: "2026-02-30" }).dueDate).toBeDefined();
+    expect(validateInvoice({ amount: 100, clientId: "c1", description: "Work", discountRate: 0, dueDate: "2026-02-30", taxRate: 0 }).dueDate).toBeDefined();
   });
 });
 

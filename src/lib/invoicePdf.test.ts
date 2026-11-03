@@ -7,10 +7,12 @@ const invoice: Invoice = {
   amount: 450,
   clientId: "c1",
   description: "Website redesign — homepage and menu pages",
+  discountRate: 0,
   dueDate: "2026-11-15",
   id: "inv-1",
   issuedDate: "2026-10-20",
   status: "unpaid",
+  taxRate: 0,
 };
 const client: Client = {
   company: "Northside Bakery",
