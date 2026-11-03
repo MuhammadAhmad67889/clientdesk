@@ -4,7 +4,7 @@ import Reveal from "../../../components/Reveal";
 import InvoiceDetailActions from "../../../components/InvoiceDetailActions";
 import { StatusBadge } from "../../../components/ui";
 import { getSessionUser, listClients, listInvoices } from "../../../lib/data";
-import { computeInvoiceTotal, formatMoney, isOverdue, todayIso } from "../../../lib/invoices";
+import { computeInvoiceTotal, formatInvoiceNumber, formatMoney, isOverdue, todayIso } from "../../../lib/invoices";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +34,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           <StatusBadge status={isOverdue(invoice, today) ? "overdue" : invoice.status} />
         </div>
         <p>Client: <strong>{client?.name ?? "Unknown client"}</strong>{client?.company ? ` — ${client.company}` : ""}</p>
+        <p>Invoice number: <strong>{formatInvoiceNumber(invoice.number)}</strong></p>
+        {user.businessName && <p>From: {user.businessName}</p>}
         <p>Description: {invoice.description}</p>
         <p>Amount: <strong>{formatMoney(invoice.amount)}</strong></p>
         {invoice.discountRate > 0 && <p>Discount: {invoice.discountRate}%</p>}
