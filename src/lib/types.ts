@@ -18,6 +18,7 @@ export interface Invoice {
   dueDate: string; // YYYY-MM-DD
   id: string;
   issuedDate: string; // YYYY-MM-DD
+  number: number | null; // per-user sequence; null for pre-numbering invoices
   status: InvoiceStatus;
   taxRate: number; // percent, 0–100; applied to the discounted amount
 }

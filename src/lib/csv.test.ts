@@ -13,6 +13,7 @@ const invoice: Invoice = {
   dueDate: "2026-10-24",
   id: "inv-1",
   issuedDate: "2026-10-09",
+  number: 3,
   status: "unpaid",
   taxRate: 0,
 };
@@ -21,8 +22,8 @@ describe("invoicesToCsv", () => {
   it("writes header and one row with overdue derived status", () => {
     const csv = invoicesToCsv([invoice], clients, "2026-10-29");
     expect(csv).toBe(
-      "Invoice ID,Client,Description,Amount,Discount %,Tax %,Total,Status,Issued,Due\n" +
-        'inv-1,Sara Khan,"Website, homepage",450.00,0,0,450.00,overdue,2026-10-09,2026-10-24\n',
+      "Invoice ID,Number,Client,Description,Amount,Discount %,Tax %,Total,Status,Issued,Due\n" +
+        'inv-1,INV-003,Sara Khan,"Website, homepage",450.00,0,0,450.00,overdue,2026-10-09,2026-10-24\n',
     );
   });
   it("escapes quotes and uses unknown client for missing client", () => {
@@ -36,7 +37,7 @@ describe("invoicesToCsv", () => {
   });
   it("writes only the header for no invoices", () => {
     expect(invoicesToCsv([], clients, "2026-10-29")).toBe(
-      "Invoice ID,Client,Description,Amount,Discount %,Tax %,Total,Status,Issued,Due\n",
+      "Invoice ID,Number,Client,Description,Amount,Discount %,Tax %,Total,Status,Issued,Due\n",
     );
   });
 });

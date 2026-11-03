@@ -7,6 +7,7 @@ import { addMonths, dueTemplates } from "./recurring";
 import type { Client, Invoice, RecurringTemplate } from "./types";
 
 export interface SessionUser {
+  businessName?: string;
   email: string;
   id: string;
 }
@@ -43,6 +44,7 @@ function toInvoice(row: {
   dueDate: string;
   id: string;
   issuedDate: string;
+  number: number | null;
   status: string;
   taxRate: number;
 }): Invoice {
@@ -54,9 +56,20 @@ function toInvoice(row: {
     dueDate: row.dueDate,
     id: row.id,
     issuedDate: row.issuedDate,
+    number: row.number,
     status: row.status === "paid" ? "paid" : "unpaid",
     taxRate: row.taxRate,
   };
+}
+
+/** Next per-user invoice number: one past the user's current maximum. */
+async function nextInvoiceNumber(userId: string, db: PrismaClient): Promise<number> {
+  const max = await db.invoice.aggregate({ _max: { number: true }, where: { userId } });
+  return (max._max.number ?? 0) + 1;
+}
+
+export async function updateBusinessName(userId: string, businessName: string, db: PrismaClient = getPrisma()): Promise<void> {
+  await db.user.update({ data: { businessName: businessName ? businessName : null }, where: { id: userId } });
 }
 
 function toRecurring(row: {
@@ -105,7 +118,7 @@ export async function getSessionUser(
       await db.session.delete({ where: { id: session.id } }).catch(() => undefined);
       return null;
     }
-    return { email: session.user.email, id: session.user.id };
+    return { businessName: session.user.businessName ?? undefined, email: session.user.email, id: session.user.id };
   } catch {
     return null;
   }
@@ -176,7 +189,7 @@ export async function createInvoice(
   if (!client) return null;
   return toInvoice(
     await db.invoice.create({
-      data: { ...input, issuedDate: todayIso(), userId },
+      data: { ...input, issuedDate: todayIso(), number: await nextInvoiceNumber(userId, db), userId },
     }),
   );
 }
@@ -244,6 +257,7 @@ export async function generateDueRecurring(
         discountRate: t.discountRate,
         dueDate: t.nextDueDate,
         issuedDate: today,
+        number: await nextInvoiceNumber(userId, db),
         status: "unpaid",
         taxRate: t.taxRate,
         userId,
@@ -274,7 +288,7 @@ export async function seedDemoForUser(userId: string, db: PrismaClient = getPris
     });
     idMap.set(c.id, created.id);
   }
-  for (const inv of seed.invoices) {
+  for (const [index, inv] of seed.invoices.entries()) {
     const clientId = idMap.get(inv.clientId);
     if (!clientId) continue;
     await db.invoice.create({
@@ -285,6 +299,7 @@ export async function seedDemoForUser(userId: string, db: PrismaClient = getPris
         discountRate: inv.discountRate,
         dueDate: inv.dueDate,
         issuedDate: inv.issuedDate,
+        number: index + 1,
         status: inv.status,
         taxRate: inv.taxRate,
         userId,

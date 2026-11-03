@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeInvoiceTotal,
+  formatInvoiceNumber,
   computeTotals,
   filterClients,
   filterInvoices,
@@ -23,6 +24,7 @@ function inv(partial: Partial<Invoice> & { id: string }): Invoice {
     discountRate: 0,
     dueDate: "2026-11-01",
     issuedDate: "2026-10-20",
+    number: null,
     status: "unpaid",
     taxRate: 0,
     ...partial,
@@ -41,6 +43,17 @@ describe("isOverdue", () => {
   });
   it("paid invoice past its due date is not overdue", () => {
     expect(isOverdue(inv({ dueDate: "2026-10-01", id: "1", status: "paid" }), TODAY)).toBe(false);
+  });
+});
+
+describe("formatInvoiceNumber", () => {
+  it("pads to three digits and grows past 999", () => {
+    expect(formatInvoiceNumber(1)).toBe("INV-001");
+    expect(formatInvoiceNumber(42)).toBe("INV-042");
+    expect(formatInvoiceNumber(1000)).toBe("INV-1000");
+  });
+  it("shows a dash for pre-numbering invoices", () => {
+    expect(formatInvoiceNumber(null)).toBe("—");
   });
 });
 

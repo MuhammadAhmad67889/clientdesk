@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { PDFFont } from "pdf-lib";
-import { computeInvoiceTotal, formatMoney } from "./invoices";
+import { computeInvoiceTotal, formatInvoiceNumber, formatMoney } from "./invoices";
 import type { Client, Invoice } from "./types";
 
 /** Word-wrap a line to fit `maxWidth` at the given font/size. */
@@ -35,6 +35,7 @@ export async function buildInvoicePdf(
   invoice: Invoice,
   client: Client | undefined,
   statusLabel: string,
+  businessName?: string,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle(`Invoice — ${invoice.description}`);
@@ -67,7 +68,8 @@ export async function buildInvoicePdf(
     }
   };
 
-  draw("Invoice", 24, true);
+  if (businessName) draw(businessName, 14, true, grey);
+  draw(invoice.number === null ? "Invoice" : `Invoice ${formatInvoiceNumber(invoice.number)}`, 24, true);
   y -= 12;
   draw(`Client: ${client?.name ?? "Unknown client"}${client?.company ? ` — ${client.company}` : ""}`, 12);
   if (client?.email) draw(`Email: ${client.email}`, 12, false, grey);

@@ -1,5 +1,5 @@
 import type { Client, Invoice } from "./types";
-import { computeInvoiceTotal, isOverdue } from "./invoices";
+import { computeInvoiceTotal, formatInvoiceNumber, isOverdue } from "./invoices";
 
 function escapeCell(value: string): string {
   if (/[",\n\r]/.test(value)) {
@@ -13,12 +13,13 @@ export function invoicesToCsv(
   clients: Client[],
   today: string,
 ): string {  const byId = new Map(clients.map((c) => [c.id, c]));
-  const header = ["Invoice ID", "Client", "Description", "Amount", "Discount %", "Tax %", "Total", "Status", "Issued", "Due"].join(",");
+  const header = ["Invoice ID", "Number", "Client", "Description", "Amount", "Discount %", "Tax %", "Total", "Status", "Issued", "Due"].join(",");
   const rows = invoices.map((inv) => {
     const client = byId.get(inv.clientId);
     const status = isOverdue(inv, today) ? "overdue" : inv.status;
     return [
       escapeCell(inv.id),
+      escapeCell(formatInvoiceNumber(inv.number)),
       escapeCell(client?.name ?? "Unknown client"),
       escapeCell(inv.description),
       inv.amount.toFixed(2),

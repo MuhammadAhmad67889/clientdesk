@@ -112,6 +112,16 @@ export function sortInvoicesRecent(invoices: Invoice[]): Invoice[] {
   );
 }
 
+/**
+ * Display number for an invoice: INV-001, INV-002, … — zero-padded to 3,
+ * growing past 999 naturally (INV-1000). Null when the invoice predates
+ * numbering and has no number assigned.
+ */
+export function formatInvoiceNumber(number: number | null): string {
+  if (number === null) return "—";
+  return `INV-${String(number).padStart(3, "0")}`;
+}
+
 export function formatMoney(amount: number): string {
   return `$${amount.toLocaleString("en-US", {
     maximumFractionDigits: 2,
@@ -151,6 +161,7 @@ export function seedData(today: string): { clients: Client[]; invoices: Invoice[
       clientId: "seed-client-1",
       description: "Website redesign — homepage and menu pages",
       discountRate: 0,
+      number: null,
       taxRate: 0,
       dueDate: addDays(today, -5),
       id: "seed-invoice-1",
@@ -162,6 +173,7 @@ export function seedData(today: string): { clients: Client[]; invoices: Invoice[
       clientId: "seed-client-2",
       description: "Booking site build, milestone 1",
       discountRate: 0,
+      number: null,
       taxRate: 0,
       dueDate: addDays(today, 12),
       id: "seed-invoice-2",
@@ -173,6 +185,7 @@ export function seedData(today: string): { clients: Client[]; invoices: Invoice[
       clientId: "seed-client-3",
       description: "Portfolio site — content and image updates",
       discountRate: 0,
+      number: null,
       taxRate: 0,
       dueDate: addDays(today, -2),
       id: "seed-invoice-3",
@@ -184,6 +197,7 @@ export function seedData(today: string): { clients: Client[]; invoices: Invoice[
       clientId: "seed-client-1",
       description: "Online ordering page",
       discountRate: 0,
+      number: null,
       taxRate: 0,
       dueDate: addDays(today, 5),
       id: "seed-invoice-4",
@@ -195,6 +209,7 @@ export function seedData(today: string): { clients: Client[]; invoices: Invoice[
       clientId: "seed-client-2",
       description: "Maintenance — January",
       discountRate: 0,
+      number: null,
       taxRate: 0,
       dueDate: addDays(today, -30),
       id: "seed-invoice-5",

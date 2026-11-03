@@ -11,6 +11,7 @@ const invoice: Invoice = {
   dueDate: "2026-11-15",
   id: "inv-1",
   issuedDate: "2026-10-20",
+  number: 1,
   status: "unpaid",
   taxRate: 0,
 };
