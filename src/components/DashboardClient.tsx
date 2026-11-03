@@ -7,6 +7,7 @@ import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
 import { computeClientTotals, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney, isOverdue, sortInvoicesRecent, todayIso } from "../lib/invoices";
 import { computeMonthlyOverview } from "../lib/monthly";
+import { rankClientsByOutstanding, summarizeMonth } from "../lib/drafts";
 import type { Client, Invoice, Payment } from "../lib/types";
 
 export default function DashboardClient({
@@ -46,6 +47,9 @@ export default function DashboardClient({
 
   const today = todayIso();
   const totals = computeClientTotals(invoices, payments, today);
+  const month = today.slice(0, 7);
+  const monthSummary = summarizeMonth(invoices, payments, month, today);
+  const rankedClients = rankClientsByOutstanding(clients, invoices, payments);
   const balanceByInvoice = new Map<string, number>(
     invoices.map((inv) => [inv.id, computeRemainingBalance(inv, payments.filter((p) => p.invoiceId === inv.id))]),
   );
@@ -176,6 +180,39 @@ export default function DashboardClient({
               ))}
             </ul>
           )}
+        </div>
+      </div>
+
+      <div className="two-col">
+        <div className="card" data-reveal>
+          <div className="card-head">
+            <h2>This month ({month})</h2>
+            <p>{monthSummary.count} invoice{monthSummary.count === 1 ? "" : "s"} issued</p>
+          </div>
+          <p style={{ margin: 0 }}>
+            Billed {formatMoney(monthSummary.billed)} · Paid {formatMoney(monthSummary.paid)} · Outstanding {formatMoney(monthSummary.outstanding)}
+            {monthSummary.overdueCount > 0 ? ` · ${monthSummary.overdueCount} overdue` : ""}
+          </p>
+          <p className="hint" style={{ marginBottom: 0 }}>Straight totals from this month&apos;s invoices and payments — no forecast.</p>
+        </div>
+        <div className="card" data-reveal>
+          <div className="card-head">
+            <h2>Largest outstanding balances</h2>
+            <Link href="/clients">View all →</Link>
+          </div>
+          {rankedClients.length === 0 ? (
+            <p className="hint" style={{ marginBottom: 0 }}>Nothing outstanding.</p>
+          ) : (
+            <ul className="attention-list">
+              {rankedClients.map(({ client, outstanding }) => (
+                <li key={client.id}>
+                  <Link href="/clients">{client.name}</Link>
+                  <span><strong>{formatMoney(outstanding)}</strong></span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="hint" style={{ marginBottom: 0 }}>Sorted by outstanding amount, largest first. This is a sort, not a risk prediction.</p>
         </div>
       </div>
 

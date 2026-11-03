@@ -222,6 +222,7 @@ export default function InvoicesClient({
       ) : (
         <form className="card grid" data-reveal onSubmit={submit}>
           <h2 className="full" style={{ margin: 0 }}>Add invoice</h2>
+          <p className="hint full" style={{ margin: 0 }}>Have the details as free text instead? <Link href="/invoices/draft">Draft an invoice from text</Link> — the draft stays editable until you create it.</p>
           <label className="full">Client *
             <select value={clientId} onChange={(e) => setClientId(e.target.value)}>
               <option value="">Choose a client</option>
