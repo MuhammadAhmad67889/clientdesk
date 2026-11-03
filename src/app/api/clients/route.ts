@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, getSessionUser, listClients } from "../../../lib/data";
+import { createClient, getSessionUser, getUsage, listClients } from "../../../lib/data";
+import { freeLimitMessage, planAllowsCreate } from "../../../lib/plans";
 import { validateClient } from "../../../lib/validation";
 
 export async function GET() {
@@ -19,6 +20,10 @@ export async function POST(req: NextRequest) {
   const notes = typeof body?.notes === "string" ? body.notes : undefined;
   const errors = validateClient({ email, name });
   if (Object.keys(errors).length > 0) return NextResponse.json({ errors }, { status: 400 });
+  const usage = await getUsage(user.id);
+  if (!planAllowsCreate(usage.plan, "client", usage.clientCount)) {
+    return NextResponse.json({ errors: { form: freeLimitMessage("client") } }, { status: 403 });
+  }
   const client = await createClient(user.id, {
     company: company?.trim() || undefined,
     email: email?.trim() || undefined,
