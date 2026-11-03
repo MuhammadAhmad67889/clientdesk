@@ -6,7 +6,7 @@ import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
 import { invoicesToCsv } from "../lib/csv";
 import { computeInvoiceTotal, filterInvoices, formatInvoiceNumber, formatMoney, isOverdue, todayIso } from "../lib/invoices";
-import type { Client, Invoice, InvoiceFilter, RecurringTemplate } from "../lib/types";
+import type { Client, Invoice, InvoiceFilter, Payment, RecurringTemplate } from "../lib/types";
 import { validateInvoice } from "../lib/validation";
 
 type SortKey = "due-asc" | "issued-desc" | "amount-desc";
@@ -14,14 +14,17 @@ type SortKey = "due-asc" | "issued-desc" | "amount-desc";
 export default function InvoicesClient({
   initialClients,
   initialInvoices,
+  initialPayments,
   initialRecurring,
 }: {
   initialClients: Client[];
   initialInvoices: Invoice[];
+  initialPayments: Payment[];
   initialRecurring: RecurringTemplate[];
 }) {
   const [clients] = useState(initialClients);
   const [invoices, setInvoices] = useState(initialInvoices);
+  const [payments] = useState(initialPayments);
   const [recurring, setRecurring] = useState(initialRecurring);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<InvoiceFilter>("all");
@@ -189,7 +192,7 @@ export default function InvoicesClient({
   }
 
   function exportCsv() {
-    const csv = invoicesToCsv(filtered, clients, today);
+    const csv = invoicesToCsv(filtered, clients, today, payments);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
