@@ -107,6 +107,14 @@ describe("computeClientTotals", () => {
     expect(totals.totalPaid).toBe(0);
     expect(totals.totalOutstanding).toBe(400);
   });
+  it("sums across several invoices, like a dashboard", () => {
+    const totals = computeClientTotals(
+      [inv({ amount: 400, id: "1" }), inv({ amount: 200, dueDate: "2026-10-01", id: "2" })],
+      payments,
+      "2026-10-29",
+    );
+    expect(totals).toEqual({ overdueAmount: 200, overdueCount: 1, totalBilled: 600, totalOutstanding: 500, totalPaid: 100 });
+  });
 });
 
 describe("computeTotals", () => {
