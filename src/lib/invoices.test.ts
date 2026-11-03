@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   applyInvoiceEdit,
   applyPaymentDeletion,
+  buildDuplicateInput,
   computeClientTotals,
+  outstandingByClient,
   computeRemainingBalance,
   computeInvoiceTotal,
   formatInvoiceNumber,
@@ -119,6 +121,28 @@ describe("applyPaymentDeletion", () => {
   });
   it("leaves an unpaid invoice unpaid", () => {
     expect(applyPaymentDeletion(inv({ amount: 400, id: "1" }), []).status).toBe("unpaid");
+  });
+});
+
+describe("buildDuplicateInput", () => {
+  it("copies terms but forces unpaid and drops identity fields", () => {
+    const input = buildDuplicateInput(inv({ amount: 400, discountRate: 10, id: "1", number: 7, status: "paid", taxRate: 5 }));
+    expect(input).toEqual({ amount: 400, clientId: "c1", description: "Work", discountRate: 10, dueDate: "2026-11-01", status: "unpaid", taxRate: 5 });
+    expect(input).not.toHaveProperty("id");
+    expect(input).not.toHaveProperty("number");
+  });
+});
+
+describe("outstandingByClient", () => {
+  it("sums remaining balances per client, reduced by payments", () => {
+    const out = outstandingByClient(
+      [inv({ amount: 400, clientId: "c1", id: "1" }), inv({ amount: 200, clientId: "c2", id: "2" })],
+      [{ amount: 100, id: "p1", invoiceId: "1", paidAt: "2026-10-20", userId: "u1" }],
+    );
+    expect(out).toEqual({ c1: 300, c2: 200 });
+  });
+  it("returns an empty object for no invoices", () => {
+    expect(outstandingByClient([], [])).toEqual({});
   });
 });
 

@@ -2,7 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
 import { hashEquals, hashToken, SESSION_COOKIE, verifySessionCookie } from "./auth";
 import { getPrisma } from "./prisma";
-import { applyInvoiceEdit, applyPaymentDeletion, computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, seedData, todayIso } from "./invoices";
+import { applyInvoiceEdit, applyPaymentDeletion, buildDuplicateInput, computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, seedData, todayIso } from "./invoices";
 import { addMonths, dueTemplates } from "./recurring";
 import type { Client, Invoice, Payment, RecurringTemplate } from "./types";
 
@@ -235,6 +235,21 @@ export async function deleteInvoice(userId: string, id: string, db: PrismaClient
   if (!existing) return false;
   await db.invoice.delete({ where: { id } });
   return true;
+}
+
+/**
+ * Duplicate an invoice for a repeat job: a fresh invoice with the
+ * same client and terms, issued today, unpaid, with no payments
+ * carried over. Returns null when the original is not the user's.
+ */
+export async function duplicateInvoice(
+  userId: string,
+  id: string,
+  db: PrismaClient = getPrisma(),
+): Promise<Invoice | null> {
+  const existing = await db.invoice.findFirst({ where: { id, userId } });
+  if (!existing) return null;
+  return createInvoice(userId, buildDuplicateInput(toInvoice(existing)), db);
 }
 
 export async function listRecurringTemplates(userId: string, db: PrismaClient = getPrisma()): Promise<RecurringTemplate[]> {

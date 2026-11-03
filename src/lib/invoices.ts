@@ -73,6 +73,34 @@ export function applyPaymentDeletion(invoice: Invoice, remainingPayments: Paymen
   return invoice;
 }
 
+export interface DuplicateInvoiceInput {
+  amount: number;
+  clientId: string;
+  description: string;
+  discountRate: number;
+  dueDate: string;
+  status: "paid" | "unpaid";
+  taxRate: number;
+}
+
+/**
+ * The input for duplicating an invoice: same client, terms and due
+ * date, but always unpaid with no payments carried over. The new
+ * number and issued date are assigned when the copy is created, and
+ * the due date can be changed with the edit form afterwards.
+ */
+export function buildDuplicateInput(invoice: Invoice): DuplicateInvoiceInput {
+  return {
+    amount: invoice.amount,
+    clientId: invoice.clientId,
+    description: invoice.description,
+    discountRate: invoice.discountRate,
+    dueDate: invoice.dueDate,
+    status: "unpaid",
+    taxRate: invoice.taxRate,
+  };
+}
+
 export function computeTotals(
   invoices: Invoice[],
   clients: Client[],
@@ -110,6 +138,24 @@ export interface ClientTotals {
   totalBilled: number;
   totalOutstanding: number;
   totalPaid: number;
+}
+
+/** Remaining balance per client, for list views. Clients with no invoices are absent. */
+export function outstandingByClient(
+  invoices: Invoice[],
+  payments: Payment[],
+): Record<string, number> {
+  const byInvoice = new Map<string, Payment[]>();
+  for (const p of payments) {
+    const list = byInvoice.get(p.invoiceId) ?? [];
+    list.push(p);
+    byInvoice.set(p.invoiceId, list);
+  }
+  const out: Record<string, number> = {};
+  for (const inv of invoices) {
+    out[inv.clientId] = roundMoney((out[inv.clientId] ?? 0) + computeRemainingBalance(inv, byInvoice.get(inv.id) ?? []));
+  }
+  return out;
 }
 
 /**
