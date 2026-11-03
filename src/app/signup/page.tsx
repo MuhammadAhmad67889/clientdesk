@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthShell from "../../components/AuthShell";
+import OAuthButtons from "../../components/OAuthButtons";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -41,6 +43,7 @@ export default function SignupPage() {
       switchNode={<p>Already have an account? <Link href="/login">Log in</Link>.</p>}
       title="Create your account"
     >
+      <OAuthButtons />
       <form className="card grid" onSubmit={submit}>
         <label className="full">Email
           <input autoComplete="email" onChange={(e) => setEmail(e.target.value)} required type="email" value={email} />
@@ -60,9 +63,18 @@ export default function SignupPage() {
             </button>
           </span>
         </label>
+        <p className="hint full">
+          {password.length >= 8 && <Check aria-hidden="true" className="icon-inline" size={14} />}
+          At least 8 characters
+          {password.length > 0 && password.length < 12 && " — longer is stronger; 12 or more is a good target."}
+        </p>
         {error && <p className="error full" role="alert">{error}</p>}
         <div className="actions full"><button className="primary" disabled={busy} type="submit">{busy ? "Creating account…" : "Create account"}</button></div>
       </form>
+      <p className="hint">
+        By creating an account you agree to the <Link href="/terms">Terms</Link> and{" "}
+        <Link href="/privacy">Privacy Policy</Link>.
+      </p>
     </AuthShell>
   );
 }
