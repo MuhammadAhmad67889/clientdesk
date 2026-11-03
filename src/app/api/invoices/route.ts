@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createInvoice, getSessionUser, listInvoices } from "../../../lib/data";
+import { createInvoice, getSessionUser, getUsage, listInvoices } from "../../../lib/data";
+import { freeLimitMessage, planAllowsCreate } from "../../../lib/plans";
 import { validateInvoice } from "../../../lib/validation";
 
 export async function GET() {
@@ -20,6 +21,10 @@ export async function POST(req: NextRequest) {
   const taxRate = body?.taxRate === "" || body?.taxRate === undefined ? 0 : Number(body?.taxRate);
   const errors = validateInvoice({ amount, clientId, description, discountRate, dueDate, taxRate });
   if (Object.keys(errors).length > 0) return NextResponse.json({ errors }, { status: 400 });
+  const usage = await getUsage(user.id);
+  if (!planAllowsCreate(usage.plan, "invoice", usage.invoiceCount)) {
+    return NextResponse.json({ errors: { form: freeLimitMessage("invoice") } }, { status: 403 });
+  }
   const invoice = await createInvoice(user.id, {
     amount: Math.round(amount * 100) / 100,
     clientId,
