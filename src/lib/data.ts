@@ -2,7 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
 import { hashEquals, hashToken, SESSION_COOKIE, verifySessionCookie } from "./auth";
 import { getPrisma } from "./prisma";
-import { computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, seedData, todayIso } from "./invoices";
+import { applyInvoiceEdit, computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, seedData, todayIso } from "./invoices";
 import { addMonths, dueTemplates } from "./recurring";
 import type { Client, Invoice, Payment, RecurringTemplate } from "./types";
 
@@ -207,6 +207,29 @@ export async function setInvoicePaid(
   );
 }
 
+/**
+ * Edit an invoice's terms. Scoped to the user's invoice; the client,
+ * issued date, number and payments are never changed by an edit.
+ */
+export async function updateInvoice(
+  userId: string,
+  id: string,
+  input: { amount: number; description: string; discountRate: number; dueDate: string; taxRate: number },
+  db: PrismaClient = getPrisma(),
+): Promise<Invoice | null> {
+  const existing = await db.invoice.findFirst({ where: { id, userId } });
+  if (!existing) return null;
+  const paymentRows = await db.payment.findMany({ where: { invoiceId: id, userId } });
+  const payments = paymentRows.map((r) => ({ amount: r.amount, id: r.id, invoiceId: r.invoiceId, paidAt: r.paidAt, userId: r.userId }));
+  const updated = applyInvoiceEdit(toInvoice(existing), payments, input);
+  return toInvoice(
+    await db.invoice.update({
+      data: { amount: updated.amount, description: updated.description, discountRate: updated.discountRate, dueDate: updated.dueDate, status: updated.status, taxRate: updated.taxRate },
+      where: { id },
+    }),
+  );
+}
+
 export async function deleteInvoice(userId: string, id: string, db: PrismaClient = getPrisma()): Promise<boolean> {
   const existing = await db.invoice.findFirst({ where: { id, userId } });
   if (!existing) return false;
@@ -309,6 +332,7 @@ export async function recordPayment(
   }
   return { amount: created.amount, id: created.id, invoiceId: created.invoiceId, paidAt: created.paidAt, userId: created.userId };
 }
+
 
 /** Seed clearly labelled demo data for one user only, with fresh ids per user. */
 export async function seedDemoForUser(userId: string, db: PrismaClient = getPrisma()): Promise<void> {

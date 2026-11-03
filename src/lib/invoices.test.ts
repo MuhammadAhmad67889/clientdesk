@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyInvoiceEdit,
   computeClientTotals,
   computeRemainingBalance,
   computeInvoiceTotal,
@@ -82,6 +83,24 @@ describe("computeRemainingBalance", () => {
   });
   it("never goes below zero", () => {
     expect(computeRemainingBalance(inv({ id: "1" }), [{ ...payments[0], amount: 150 }])).toBe(0);
+  });
+});
+
+describe("applyInvoiceEdit", () => {
+  const edit = { amount: 300, description: "Revised work", discountRate: 0, dueDate: "2026-12-01", taxRate: 0 };
+  const payments = [{ amount: 300, id: "p1", invoiceId: "1", paidAt: "2026-10-20", userId: "u1" }];
+  it("marks the invoice paid when payments cover the new total", () => {
+    expect(applyInvoiceEdit(inv({ amount: 400, id: "1" }), payments, edit).status).toBe("paid");
+  });
+  it("leaves an unpaid invoice unpaid when payments fall short", () => {
+    expect(applyInvoiceEdit(inv({ amount: 400, id: "1" }), [], edit).status).toBe("unpaid");
+  });
+  it("never changes number, client or issued date", () => {
+    const updated = applyInvoiceEdit(inv({ amount: 400, id: "1", number: 7 }), [], edit);
+    expect(updated.number).toBe(7);
+    expect(updated.clientId).toBe("c1");
+    expect(updated.issuedDate).toBe("2026-10-20");
+    expect(updated.description).toBe("Revised work");
   });
 });
 

@@ -38,6 +38,28 @@ export function computeRemainingBalance(invoice: Invoice, payments: Payment[]): 
   return Math.max(0, roundMoney(computeInvoiceTotal(invoice) - computeAmountPaid(payments)));
 }
 
+export interface InvoiceEdit {
+  amount: number;
+  description: string;
+  discountRate: number;
+  dueDate: string;
+  taxRate: number;
+}
+
+/**
+ * Apply an edit to an invoice in memory. The number, client, issued
+ * date and payments never change here. Status only ever moves toward
+ * paid: when recorded payments already cover the new total, the
+ * invoice becomes paid; a manually-marked-paid invoice is left alone.
+ */
+export function applyInvoiceEdit(invoice: Invoice, payments: Payment[], edit: InvoiceEdit): Invoice {
+  const updated: Invoice = { ...invoice, ...edit };
+  if (computeAmountPaid(payments) >= computeInvoiceTotal(updated) - 0.001) {
+    updated.status = "paid";
+  }
+  return updated;
+}
+
 export function computeTotals(
   invoices: Invoice[],
   clients: Client[],
