@@ -18,6 +18,8 @@ model User {
   businessName String?
   createdAt    DateTime  @default(now())
   email        String    @unique
+  githubId     String?   @unique
+  googleId     String?   @unique
   id           String    @id @default(cuid())
   passwordHash String
   plan         String    @default("free")
@@ -28,7 +30,18 @@ model User {
   invoices     Invoice[]
   payments     Payment[]
   recurringTemplates RecurringTemplate[]
+  resetTokens  PasswordResetToken[]
   sessions     Session[]
+}
+
+model PasswordResetToken {
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  usedAt    DateTime?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
 }
 
 model Session {
@@ -43,6 +56,7 @@ model Session {
 }
 
 model Client {
+  archived  Boolean  @default(false)
   company   String?
   createdAt DateTime @default(now())
   email     String?
@@ -74,9 +88,21 @@ model Invoice {
   taxRate     Float    @default(0)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
+  items       InvoiceItem[]
 
   @@index([userId])
   @@index([clientId])
+}
+
+model InvoiceItem {
+  description String
+  id          String  @id @default(cuid())
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId   String
+  quantity    Float
+  unitPrice   Float
+
+  @@index([invoiceId])
 }
 
 model RecurringTemplate {
@@ -100,9 +126,12 @@ model Payment {
   amount    Float
   createdAt DateTime @default(now())
   id        String   @id @default(cuid())
+  idempotencyKey String? @unique
   invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   invoiceId String
+  method    String?
   paidAt    String
+  reference String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
 
