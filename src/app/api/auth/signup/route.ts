@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPrisma } from "../../../../lib/prisma";
 import { hashPassword, normalizeEmail, validateCredentials } from "../../../../lib/auth";
+import { clientIp, isRateLimited } from "../../../../lib/rateLimit";
 import { seedDemoForUser } from "../../../../lib/data";
 import { createSession, setSessionCookie } from "../../../../lib/session-cookie";
 
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as { email?: unknown; password?: unknown } | null;
+  if (isRateLimited(`signup:${clientIp(req)}`, 10, 60_000)) {
+    return NextResponse.json(
+      { errors: { form: "Too many attempts. Try again in a minute." } },
+      { status: 429 },
+    );
+  }
   const email = typeof body?.email === "string" ? body.email : "";
   const password = typeof body?.password === "string" ? body.password : "";
   const errors = validateCredentials({ email, password });
