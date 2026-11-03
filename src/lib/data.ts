@@ -138,6 +138,24 @@ export async function getUsage(
   return { clientCount, invoiceCount, plan: user?.plan ?? "free" };
 }
 
+/** Billing state for Settings. Keys never leave the server; callers
+ * pass only these fields to the client. */
+export async function getBilling(
+  userId: string,
+  db: PrismaClient = getPrisma(),
+): Promise<{
+  hasStripeCustomer: boolean;
+  plan: string;
+  subscriptionStatus: string | null;
+}> {
+  const user = await db.user.findUnique({ where: { id: userId } });
+  return {
+    hasStripeCustomer: Boolean(user?.stripeCustomerId),
+    plan: user?.plan ?? "free",
+    subscriptionStatus: user?.subscriptionStatus ?? null,
+  };
+}
+
 /** Every query below filters by userId: users only ever see their own rows. */
 export async function listClients(userId: string, db: PrismaClient = getPrisma()): Promise<Client[]> {
   const rows = await db.client.findMany({ orderBy: { name: "asc" }, where: { userId } });
