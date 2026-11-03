@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deleteClient, getSessionUser, updateClient } from "../../../../lib/data";
+import { deleteClient, getSessionUser, setClientArchived, updateClient } from "../../../../lib/data";
 import { validateClient } from "../../../../lib/validation";
+
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  const { id } = await ctx.params;
+  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+  if (typeof body?.archived !== "boolean") {
+    return NextResponse.json({ errors: { form: "archived must be true or false." } }, { status: 400 });
+  }
+  const updated = await setClientArchived(user.id, id, body.archived);
+  if (!updated) return NextResponse.json({ error: "Client not found." }, { status: 404 });
+  return NextResponse.json(updated);
+}
 
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
