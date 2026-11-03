@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import Reveal from "../../../components/Reveal";
 import { StatusBadge } from "../../../components/ui";
-import { getSessionUser, listClients, listInvoices } from "../../../lib/data";
-import { computeTotals, formatMoney, isOverdue, todayIso } from "../../../lib/invoices";
+import { getSessionUser, listClients, listInvoices, listPayments } from "../../../lib/data";
+import { computeClientTotals, formatMoney, isOverdue, todayIso } from "../../../lib/invoices";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +11,13 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const user = await getSessionUser();
   if (!user) redirect("/login");
   const { id } = await params;
-  const [clients, invoices] = await Promise.all([listClients(user.id), listInvoices(user.id)]);
+  const [clients, invoices, payments] = await Promise.all([listClients(user.id), listInvoices(user.id), listPayments(user.id)]);
   const client = clients.find((c) => c.id === id);
   if (!client) notFound();
   const mine = invoices.filter((i) => i.clientId === id);
   const today = todayIso();
-  const totals = computeTotals(mine, [client], today);
+  const mineIds = new Set(mine.map((i) => i.id));
+  const totals = computeClientTotals(mine, payments.filter((p) => mineIds.has(p.invoiceId)), today);
 
   return (
     <Reveal>
@@ -35,8 +36,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         </div>
         <div className="card">
           <h2>With this client</h2>
-          <p>Outstanding: <strong>{formatMoney(totals.totalOutstanding)}</strong></p>
+          <p>Total billed: <strong>{formatMoney(totals.totalBilled)}</strong></p>
           <p>Paid: <strong>{formatMoney(totals.totalPaid)}</strong></p>
+          <p>Outstanding: <strong>{formatMoney(totals.totalOutstanding)}</strong></p>
           <p style={{ marginBottom: 0 }}>Overdue: <strong>{totals.overdueCount} · {formatMoney(totals.overdueAmount)}</strong></p>
         </div>
       </div>
