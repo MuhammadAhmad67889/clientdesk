@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
   }
 
   const db = getPrisma();
+
+  // Checkout completed means Stripe has a subscription for this user:
+  // that is the moment the account becomes Pro.
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const userId = session.metadata?.userId;
@@ -42,11 +45,10 @@ export async function POST(req: NextRequest) {
     event.type === "customer.subscription.created" ||
     event.type === "customer.subscription.updated"
   ) {
+    // Any status change on Stripe's side is followed, not second-
+    // guessed: active/trialing/past_due stay Pro, the rest drop to Free.
     const sub = event.data.object as Stripe.Subscription;
-    const customerId = typeof sub.customer === "string" ? sub.customer : null;
-    const user = customerId
-      ? await db.user.findUnique({ where: { stripeCustomerId: customerId } })
-      : await db.user.findFirst({ where: { stripeSubscriptionId: sub.id } });
+    const user = await findUserForSubscription(db, sub);
     if (user) {
       await db.user.update({
         data: {
@@ -58,14 +60,11 @@ export async function POST(req: NextRequest) {
       });
     }
   } else if (event.type === "customer.subscription.deleted") {
+    // The subscription ended. Downgrade only: nothing is deleted, and
+    // the free limits apply again from here.
     const sub = event.data.object as Stripe.Subscription;
-    const customerId = typeof sub.customer === "string" ? sub.customer : null;
-    const user = customerId
-      ? await db.user.findUnique({ where: { stripeCustomerId: customerId } })
-      : await db.user.findFirst({ where: { stripeSubscriptionId: sub.id } });
+    const user = await findUserForSubscription(db, sub);
     if (user) {
-      // Downgrade only: nothing is deleted, and the free limits apply
-      // again from here.
       await db.user.update({
         data: { plan: "free", subscriptionStatus: "canceled" },
         where: { id: user.id },
@@ -74,4 +73,15 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ received: true });
+}
+
+/** Find the account behind a Stripe subscription, by customer first
+ * and by subscription id as a fallback. */
+async function findUserForSubscription(
+  db: ReturnType<typeof getPrisma>,
+  sub: Stripe.Subscription,
+) {
+  const customerId = typeof sub.customer === "string" ? sub.customer : null;
+  if (customerId) return db.user.findUnique({ where: { stripeCustomerId: customerId } });
+  return db.user.findFirst({ where: { stripeSubscriptionId: sub.id } });
 }
