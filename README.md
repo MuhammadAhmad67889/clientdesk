@@ -173,13 +173,16 @@ every number on the dashboard still comes from your real data.
 
 ## Screenshots
 
-These are real screenshots of the deployed app, taken with the seeded
-demo data (not a real customer's data). They show the redesigned
-interface: sidebar, dashboard, clients, and invoices.
+These are real screenshots of the deployed app, taken 4 November 2026
+with the seeded demo data (not a real customer's data). They show the
+current interface: dashboard with revenue trend and recent activity,
+clients, invoices, and an invoice detail page with line items and
+payment history.
 
 ![Dashboard](docs/screenshots/dashboard.png)
 ![Clients](docs/screenshots/clients.png)
 ![Invoices](docs/screenshots/invoices.png)
+![Invoice detail](docs/screenshots/invoice-detail.png)
 
 ## How I verified this
 
@@ -189,9 +192,9 @@ build on Node 20 and 22. The live checks I actually did: logged out,
 reloaded, and both were still there.
 
 The screenshots above are real shots of the deployed app with seeded
-demo data, taken 30 October 2026 — not a real customer's data. Features
-added since then (payments, recurring invoices, edit and duplicate)
-aren't in them.
+demo data, taken 4 November 2026 — not a real customer's data. They show
+the current interface, including the revenue trend, recent activity,
+line items, and payment history.
 
 Data cleanup, 1 November 2026: the live database had picked up six
 throwaway test accounts from verification and screenshot work (19
