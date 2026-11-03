@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import Reveal from "../../../components/Reveal";
 import { StatusBadge } from "../../../components/ui";
@@ -22,7 +23,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   return (
     <Reveal>
       <div className="page-head">
-        <p style={{ margin: 0 }}><Link href="/clients">← All clients</Link></p>
+        <p style={{ margin: 0 }}><Link href="/clients"><ArrowLeft aria-hidden="true" className="icon-inline" size={14} /> All clients</Link></p>
         <h1 style={{ marginTop: 8 }}>{client.name}</h1>
         <p className="lead">{client.company ?? "No company listed"} · Client since {client.createdAt}</p>
       </div>
