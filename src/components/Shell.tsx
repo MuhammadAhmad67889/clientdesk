@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ChevronDown, ChevronLeft, ChevronRight, FileText, LayoutGrid, LogOut, Settings, User, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import CommandPalette from "./CommandPalette";
 
@@ -12,38 +13,13 @@ const NAV = [
   { href: "/settings", label: "Settings" },
 ];
 
+/** One icon per nav section, from Lucide, so every icon in the app
+ * shares the same stroke and size. */
 function Icon({ kind }: { kind: string }) {
-  const common = {
-    fill: "none",
-    height: 18,
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    viewBox: "0 0 24 24",
-    width: 18,
-  };
-  if (kind === "clients")
-    return (
-      <svg {...common}>
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    );
-  if (kind === "invoices")
-    return (
-      <svg {...common}>
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <path d="M14 2v6h6M16 13H8M16 17H8" />
-      </svg>
-    );
-  return (
-    <svg {...common}>
-      <rect height="7" width="7" x="3" y="3" rx="1" />
-      <rect height="7" width="7" x="14" y="3" rx="1" />
-      <rect height="7" width="7" x="14" y="14" rx="1" />
-      <rect height="7" width="7" x="3" y="14" rx="1" />
-    </svg>
-  );
+  if (kind === "clients") return <Users size={18} />;
+  if (kind === "invoices") return <FileText size={18} />;
+  if (kind === "settings") return <Settings size={18} />;
+  return <LayoutGrid size={18} />;
 }
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -53,6 +29,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("clientdesk-theme");
@@ -129,24 +106,17 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               onClick={() => setMobileOpen(false)}
             >
               <span className="nav-icon">
-                <Icon kind={item.href === "/clients" ? "clients" : item.href === "/invoices" ? "invoices" : "overview"} />
+                <Icon kind={item.href === "/clients" ? "clients" : item.href === "/invoices" ? "invoices" : item.href === "/settings" ? "settings" : "overview"} />
               </span>
               <span className="nav-label">{item.label}</span>
             </Link>
           ))}
         </nav>
         <div className="sidebar-foot">
-          {email && <span className="nav-email">{email}</span>}
           <button className="nav-item" onClick={toggleCollapsed} type="button">
-            <span className="nav-icon">{collapsed ? "→" : "←"}</span>
+            <span className="nav-icon">{collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}</span>
             <span className="nav-label">{collapsed ? "Expand sidebar" : "Collapse sidebar"}</span>
           </button>
-          {email && (
-            <button className="nav-item" onClick={logout} type="button">
-              <span className="nav-icon">↪</span>
-              <span className="nav-label">Log out</span>
-            </button>
-          )}
         </div>
       </aside>
       <div className="shell-main">
@@ -176,6 +146,34 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           >
             {theme === "dark" ? "☀" : "☾"}
           </button>
+          {email && (
+            <div className="profile-menu">
+              <button
+                aria-expanded={profileOpen}
+                aria-label="Account menu"
+                className="icon-btn"
+                onClick={() => setProfileOpen((v) => !v)}
+                type="button"
+              >
+                <User size={18} />
+                <ChevronDown size={14} />
+              </button>
+              {profileOpen && (
+                <>
+                  <button aria-label="Close account menu" className="menu-backdrop" onClick={() => setProfileOpen(false)} type="button" />
+                  <div className="profile-dropdown" role="menu">
+                    <span className="profile-email">{email}</span>
+                    <Link href="/settings" onClick={() => setProfileOpen(false)} role="menuitem">
+                      <Settings aria-hidden="true" className="icon-inline" size={14} /> Settings
+                    </Link>
+                    <button onClick={logout} role="menuitem" type="button">
+                      <LogOut aria-hidden="true" className="icon-inline" size={14} /> Log out
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </header>
         <main className="content">{children}</main>
       </div>

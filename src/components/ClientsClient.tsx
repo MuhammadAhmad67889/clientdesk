@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState } from "./ui";
+import Pagination, { PAGE_SIZE } from "./Pagination";
 import { clientsToCsv, parseClientsCsv } from "../lib/csv";
 import { filterClients, formatMoney, outstandingByClient } from "../lib/invoices";
 import type { Client, Invoice, Payment } from "../lib/types";
 import { validateClient } from "../lib/validation";
 
 type SortKey = "name-asc" | "name-desc" | "newest";
+type ArchiveFilter = "active" | "archived" | "all";
 
 export default function ClientsClient({
   initialClients,
@@ -25,6 +27,8 @@ export default function ClientsClient({
   const [payments] = useState(initialPayments);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("name-asc");
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>("active");
+  const [page, setPage] = useState(1);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
@@ -40,13 +44,22 @@ export default function ClientsClient({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
-    const list = filterClients(clients, query);
+    // Archived clients are hidden by default; they are not deleted,
+    // and their invoices and outstanding balances stay intact.
+    const list = filterClients(clients, query).filter((c) =>
+      archiveFilter === "all" ? true : archiveFilter === "archived" ? c.archived : !c.archived,
+    );
     const sorted = [...list];
     if (sort === "name-desc") sorted.sort((a, b) => b.name.localeCompare(a.name));
     else if (sort === "newest") sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     else sorted.sort((a, b) => a.name.localeCompare(b.name));
     return sorted;
-  }, [clients, query, sort]);
+  }, [clients, query, sort, archiveFilter]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const displayPage = Math.min(page, pageCount);
+  const paged = filtered.slice((displayPage - 1) * PAGE_SIZE, displayPage * PAGE_SIZE);
+  const activeCount = clients.filter((c) => !c.archived).length;
+  const archivedCount = clients.length - activeCount;
 
   const outstanding = useMemo(() => outstandingByClient(invoices, payments), [invoices, payments]);
 
@@ -99,6 +112,22 @@ export default function ClientsClient({
     setSavedNote("");
   }
 
+  async function setArchived(c: Client, archived: boolean) {
+    const res = await fetch(`/api/clients/${c.id}`, {
+      body: JSON.stringify({ archived }),
+      headers: { "Content-Type": "application/json" },
+      method: "PATCH",
+    });
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+    if (res.ok) {
+      const saved = (await res.json()) as Client;
+      setClients((prev) => prev.map((x) => (x.id === saved.id ? saved : x)));
+    }
+  }
+
   async function deleteOne(id: string) {
     const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
     if (res.status === 401) {
@@ -146,7 +175,7 @@ export default function ClientsClient({
     <Reveal>
       <div className="page-head">
         <h1>Clients</h1>
-        <p className="lead">{clients.length} client{clients.length === 1 ? "" : "s"}. Deleting a client also deletes its invoices.</p>
+        <p className="lead">{activeCount} active client{activeCount === 1 ? "" : "s"}{archivedCount > 0 ? ` · ${archivedCount} archived` : ""}. Deleting a client also deletes its invoices.</p>
       </div>
 
       <form className="card grid" data-reveal onSubmit={submit}>
@@ -205,6 +234,11 @@ export default function ClientsClient({
           <option value="name-desc">Name Z–A</option>
           <option value="newest">Newest first</option>
         </select>
+        <select value={archiveFilter} onChange={(e) => setArchiveFilter(e.target.value as ArchiveFilter)} aria-label="Filter archived clients">
+          <option value="active">Active only</option>
+          <option value="archived">Archived only</option>
+          <option value="all">Active and archived</option>
+        </select>
         <button onClick={() => {
           const blob = new Blob([clientsToCsv(filtered)], { type: "text/csv;charset=utf-8" });
           const url = URL.createObjectURL(blob);
@@ -225,7 +259,7 @@ export default function ClientsClient({
         />
       ) : filtered.length === 0 ? (
         <EmptyState
-          text="Try a different search term or clear the search to see all clients."
+          text="Try a different search term, sort, or archive filter to see all clients."
           title="No clients match your search"
         />
       ) : (
@@ -233,7 +267,7 @@ export default function ClientsClient({
           <table>
             <thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Phone</th><th>Outstanding</th><th>Actions</th></tr></thead>
             <tbody>
-              {filtered.map((c) => (
+              {paged.map((c) => (
                 <tr key={c.id}>
                   <td data-label="Name">
                     <Link href={`/clients/${c.id}`}>{c.name}</Link>
@@ -246,6 +280,9 @@ export default function ClientsClient({
                   <td data-label="Actions">
                     <div className="actions">
                       <button onClick={() => startEdit(c)}>Edit</button>
+                      <button onClick={() => setArchived(c, !c.archived)}>
+                        {c.archived ? "Unarchive" : "Archive"}
+                      </button>
                       {confirmDeleteId === c.id ? (
                         <>
                           <button className="danger" onClick={() => deleteOne(c.id)}>Confirm delete</button>
@@ -260,6 +297,7 @@ export default function ClientsClient({
               ))}
             </tbody>
           </table>
+          <Pagination label="clients" onPage={setPage} page={displayPage} total={filtered.length} />
         </div>
       )}
     </Reveal>

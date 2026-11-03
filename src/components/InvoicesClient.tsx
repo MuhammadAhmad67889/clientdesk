@@ -4,8 +4,11 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
+import Pagination, { PAGE_SIZE } from "./Pagination";
+import InvoiceItemsEditor from "./InvoiceItemsEditor";
 import { invoicesToCsv } from "../lib/csv";
-import { computeInvoiceTotal, filterInvoices, formatInvoiceNumber, formatMoney, isOverdue, todayIso } from "../lib/invoices";
+import { computeInvoiceTotal, computeItemsSubtotal, filterInvoices, formatInvoiceNumber, formatMoney, isOverdue, todayIso, validateInvoiceItems } from "../lib/invoices";
+import type { InvoiceItemInput } from "../lib/invoices";
 import type { Client, Invoice, InvoiceFilter, Payment, RecurringTemplate } from "../lib/types";
 import { validateInvoice } from "../lib/validation";
 
@@ -31,9 +34,12 @@ export default function InvoicesClient({
   const [dueFrom, setDueFrom] = useState("");
   const [dueTo, setDueTo] = useState("");
   const [sort, setSort] = useState<SortKey>("due-asc");
+  const [page, setPage] = useState(1);
   const [clientId, setClientId] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [useItems, setUseItems] = useState(false);
+  const [items, setItems] = useState<InvoiceItemInput[]>([{ description: "", quantity: 1, unitPrice: 0 }]);
   const [discountRate, setDiscountRate] = useState("");
   const [taxRate, setTaxRate] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -61,12 +67,30 @@ export default function InvoicesClient({
     return sorted;
   }, [invoices, clients, query, filter, sort, today, dueFrom, dueTo]);
   const byId = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
+  // Archived clients keep their history, but new invoices and
+  // retainers are only offered for active clients.
+  const activeClients = useMemo(() => clients.filter((c) => !c.archived), [clients]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const displayPage = Math.min(page, pageCount);
+  const paged = filtered.slice((displayPage - 1) * PAGE_SIZE, displayPage * PAGE_SIZE);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const parsedAmount = Number(amount);
     const parsedDiscount = discountRate === "" ? 0 : Number(discountRate);
     const parsedTax = taxRate === "" ? 0 : Number(taxRate);
+    // Line-item invoices validate the items; the amount is their
+    // subtotal. Single-amount invoices validate as before.
+    let parsedAmount: number;
+    if (useItems) {
+      const itemsError = validateInvoiceItems(items);
+      if (itemsError) {
+        setErrors({ form: itemsError });
+        return;
+      }
+      parsedAmount = computeItemsSubtotal(items);
+    } else {
+      parsedAmount = Number(amount);
+    }
     const errs = validateInvoice({ amount: parsedAmount, clientId, description, discountRate: parsedDiscount, dueDate, taxRate: parsedTax });
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -79,6 +103,7 @@ export default function InvoicesClient({
         description: description.trim(),
         discountRate: parsedDiscount,
         dueDate,
+        items: useItems ? items : undefined,
         taxRate: parsedTax,
       }),
       headers: { "Content-Type": "application/json" },
@@ -96,7 +121,9 @@ export default function InvoicesClient({
     }
     const saved = (await res.json()) as Invoice;
     setInvoices((prev) => [...prev, saved]);
-    setClientId(""); setDescription(""); setAmount(""); setDiscountRate(""); setTaxRate(""); setDueDate(""); setErrors({});
+    setClientId(""); setDescription(""); setAmount(""); setUseItems(false);
+    setItems([{ description: "", quantity: 1, unitPrice: 0 }]);
+    setDiscountRate(""); setTaxRate(""); setDueDate(""); setErrors({});
     setSavedNote("Invoice added.");
   }
 
@@ -212,7 +239,7 @@ export default function InvoicesClient({
         <p className="lead">Overdue means unpaid and past its due date. Paid invoices are never overdue.</p>
       </div>
 
-      {clients.length === 0 ? (
+      {activeClients.length === 0 ? (
         <EmptyState
           actionHref="/clients"
           actionLabel="Go to Clients"
@@ -226,7 +253,7 @@ export default function InvoicesClient({
           <label className="full">Client *
             <select value={clientId} onChange={(e) => setClientId(e.target.value)}>
               <option value="">Choose a client</option>
-              {clients.map((c) => <option key={c.id} value={c.id}>{c.name}{c.company ? ` — ${c.company}` : ""}</option>)}
+              {activeClients.map((c) => <option key={c.id} value={c.id}>{c.name}{c.company ? ` — ${c.company}` : ""}</option>)}
             </select>
             {errors.clientId && <span className="error">{errors.clientId}</span>}
           </label>
@@ -234,10 +261,16 @@ export default function InvoicesClient({
             <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Website redesign" />
             {errors.description && <span className="error">{errors.description}</span>}
           </label>
-          <label>Amount ($) *
-            <input type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="450.00" />
-            {errors.amount && <span className="error">{errors.amount}</span>}
+          {!useItems && (
+            <label>Amount ($) *
+              <input type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="450.00" />
+              {errors.amount && <span className="error">{errors.amount}</span>}
+            </label>
+          )}
+          <label className="full">
+            <input type="checkbox" checked={useItems} onChange={(e) => setUseItems(e.target.checked)} /> Use line items instead of a single amount
           </label>
+          {useItems && <InvoiceItemsEditor items={items} onChange={setItems} />}
           <label>Discount (%) — optional
             <input type="number" min="0" max="100" step="0.01" inputMode="decimal" value={discountRate} onChange={(e) => setDiscountRate(e.target.value)} placeholder="0" />
             {errors.discountRate && <span className="error">{errors.discountRate}</span>}
@@ -269,7 +302,7 @@ export default function InvoicesClient({
           <label className="full">Client *
             <select value={rClientId} onChange={(e) => setRClientId(e.target.value)}>
               <option value="">Choose a client</option>
-              {clients.map((c) => <option key={c.id} value={c.id}>{c.name}{c.company ? ` — ${c.company}` : ""}</option>)}
+              {activeClients.map((c) => <option key={c.id} value={c.id}>{c.name}{c.company ? ` — ${c.company}` : ""}</option>)}
             </select>
             {rErrors.clientId && <span className="error">{rErrors.clientId}</span>}
           </label>
@@ -348,7 +381,7 @@ export default function InvoicesClient({
           <table>
             <thead><tr><th>Number</th><th>Client</th><th>Description</th><th>Amount</th><th>Total</th><th>Status</th><th>Issued</th><th>Due</th><th>Actions</th></tr></thead>
             <tbody>
-              {filtered.map((inv) => {
+              {paged.map((inv) => {
                 const overdue = isOverdue(inv, today);
                 return (
                   <tr key={inv.id}>
@@ -383,6 +416,7 @@ export default function InvoicesClient({
               })}
             </tbody>
           </table>
+          <Pagination label="invoices" onPage={setPage} page={displayPage} total={filtered.length} />
         </div>
       )}
     </Reveal>

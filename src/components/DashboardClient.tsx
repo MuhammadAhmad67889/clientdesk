@@ -1,14 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import OnboardingCard from "./OnboardingCard";
 import Reveal from "./Reveal";
+import { ConfirmDialog } from "./Dialog";
 import { EmptyState, StatusBadge } from "./ui";
 import { computeClientTotals, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney, isOverdue, sortInvoicesRecent, todayIso } from "../lib/invoices";
 import { computeMonthlyOverview } from "../lib/monthly";
+import { buildActivity } from "../lib/activity";
 import { rankClientsByOutstanding, summarizeMonth } from "../lib/drafts";
 import type { Client, Invoice, Payment } from "../lib/types";
+
+/** First day included by a "last N days" filter, from a YYYY-MM-DD date. */
+function cutoffFor(today: string, days: number): string {
+  const d = new Date(`${today}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - (days - 1));
+  return d.toISOString().slice(0, 10);
+}
 
 export default function DashboardClient({
   initialClients,
@@ -25,6 +35,10 @@ export default function DashboardClient({
   const [email, setEmail] = useState<string | null>(null);
   const [resetDone, setResetDone] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [range, setRange] = useState<"all" | "30" | "90">("all");
+  const [generating, setGenerating] = useState(false);
+  const [generateNote, setGenerateNote] = useState("");
 
   useEffect(() => {
     fetch("/api/me")
@@ -54,22 +68,67 @@ export default function DashboardClient({
     invoices.map((inv) => [inv.id, computeRemainingBalance(inv, payments.filter((p) => p.invoiceId === inv.id))]),
   );
   const byId = new Map(clients.map((c) => [c.id, c]));
-  const recent = sortInvoicesRecent(invoices).slice(0, 5);
+  // The range filter covers the recent lists and the trend only.
+  // Account totals above stay unfiltered, so they never mislead.
+  const cutoff = range === "all" ? null : cutoffFor(today, Number(range));
+  const rangeInvoices = cutoff ? invoices.filter((inv) => inv.issuedDate >= cutoff) : invoices;
+  const rangeClients = cutoff ? clients.filter((c) => c.createdAt >= cutoff) : clients;
+  const recent = sortInvoicesRecent(rangeInvoices).slice(0, 5);
   const overdue = invoices
     .filter((inv) => isOverdue(inv, today))
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
     .slice(0, 5);
   const unpaidCount = invoices.filter((i) => i.status === "unpaid").length;
-  const recentClients = [...clients]
+  const recentClients = [...rangeClients]
+    .filter((c) => !c.archived)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 5);
-  // Last 6 months, from real issued dates — no chart library,
-  // just bars scaled to the biggest month in the window.
-  const months = computeMonthlyOverview(invoices);
+  const activity = buildActivity(clients, invoices, payments);
+  // Revenue trend: two SVG lines from the real monthly totals —
+  // paid and outstanding — with the exact figures listed below.
+  const months = computeMonthlyOverview(rangeInvoices);
   const monthMax = Math.max(1, ...months.flatMap((m) => [m.paid, m.outstanding]));
+  const chartW = 600;
+  const chartH = 220;
+  const chartTop = 16;
+  const chartBottom = 28;
+  const chartSide = 8;
+  const chartX = (i: number) =>
+    months.length === 1 ? chartW / 2 : chartSide + (i * (chartW - chartSide * 2)) / (months.length - 1);
+  const chartY = (v: number) => chartTop + (1 - v / monthMax) * (chartH - chartTop - chartBottom);
+  const chartPoints = (key: "paid" | "outstanding") =>
+    months.map((m, i) => `${chartX(i)},${chartY(m[key])}`).join(" ");
+
+  async function generateDue() {
+    if (generating) return;
+    setGenerating(true);
+    setGenerateNote("");
+    const res = await fetch("/api/recurring/generate", { method: "POST" });
+    setGenerating(false);
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+    const data = (await res.json().catch(() => null)) as { created?: number; errors?: Record<string, string> } | null;
+    if (!res.ok) {
+      setGenerateNote(data?.errors?.form ?? "Could not generate.");
+      return;
+    }
+    // Refresh lists without touching payments — generating only
+    // adds invoices, it never changes recorded payments.
+    const [cRes, iRes] = await Promise.all([fetch("/api/clients"), fetch("/api/invoices")]);
+    if (cRes.ok && iRes.ok) {
+      setClients(await cRes.json());
+      setInvoices(await iRes.json());
+    }
+    setGenerateNote(
+      data?.created === 0
+        ? "Nothing due right now."
+        : `Generated ${data?.created ?? 0} invoice${data?.created === 1 ? "" : "s"}.`,
+    );
+  }
 
   async function resetDemo() {
-    if (!window.confirm("Reset to the demo clients and invoices? Your changes will be lost.")) return;
     setResetting(true);
     const res = await fetch("/api/reset-demo", { method: "POST" });
     setResetting(false);
@@ -95,7 +154,21 @@ export default function DashboardClient({
         <div className="page-actions">
           <Link className="btn btn-primary" href="/clients">Add client</Link>
           <Link className="btn" href="/invoices">Add invoice</Link>
+          <Link className="btn" href="/invoices/draft">Draft from text</Link>
+          <button disabled={generating} onClick={generateDue} type="button">
+            {generating ? "Generating…" : "Generate due now"}
+          </button>
         </div>
+        {generateNote && <p className="hint" role="status">{generateNote}</p>}
+      </div>
+
+      <div className="toolbar" role="group" aria-label="Date range for recent lists and trend">
+        <span>Recent lists and trend:</span>
+        {(["all", "30", "90"] as const).map((r) => (
+          <button key={r} aria-pressed={range === r} onClick={() => setRange(r)} type="button">
+            {r === "all" ? "All time" : `Last ${r} days`}
+          </button>
+        ))}
       </div>
 
       <OnboardingCard
@@ -115,28 +188,28 @@ export default function DashboardClient({
 
       <div className="card" data-reveal>
         <div className="card-head">
-          <h2>Last 6 months</h2>
-          <p>By issued date · paid vs outstanding</p>
+          <h2>Revenue trend</h2>
+          <p>By issued date · paid vs outstanding{range !== "all" ? ` · last ${range} days` : ""}</p>
         </div>
-        <div style={{ display: "grid", gap: 10 }}>
+        <svg aria-label="Paid and outstanding totals by month" role="img" style={{ height: "auto", width: "100%" }} viewBox={`0 0 ${chartW} ${chartH}`}>
+          <title>Paid and outstanding totals by month</title>
+          <polyline fill="none" points={chartPoints("paid")} stroke="var(--success)" strokeWidth="2" />
+          <polyline fill="none" points={chartPoints("outstanding")} stroke="var(--primary)" strokeWidth="2" />
+          {months.map((m, i) => (
+            <g key={m.key}>
+              <circle cx={chartX(i)} cy={chartY(m.paid)} fill="var(--success)" r="4" />
+              <circle cx={chartX(i)} cy={chartY(m.outstanding)} fill="var(--primary)" r="4" />
+              <text fill="var(--text-2)" fontSize="12" textAnchor="middle" x={chartX(i)} y={chartH - 8}>{m.label}</text>
+            </g>
+          ))}
+        </svg>
+        <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
           {months.map((m) => (
-            <div key={m.key}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem" }}>
-                <strong>{m.label}</strong>
-                <span style={{ color: "var(--text-2)" }}>
-                  Paid {formatMoney(m.paid)} · Outstanding {formatMoney(m.outstanding)}
-                </span>
-              </div>
-              <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-                <div
-                  aria-hidden="true"
-                  style={{ background: "var(--success)", borderRadius: 4, height: 8, width: `${Math.max(m.paid > 0 ? 4 : 0, (m.paid / monthMax) * 100)}%` }}
-                />
-                <div
-                  aria-hidden="true"
-                  style={{ background: "var(--primary)", borderRadius: 4, height: 8, width: `${Math.max(m.outstanding > 0 ? 4 : 0, (m.outstanding / monthMax) * 100)}%` }}
-                />
-              </div>
+            <div key={m.key} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem" }}>
+              <strong>{m.label}</strong>
+              <span style={{ color: "var(--text-2)" }}>
+                Paid {formatMoney(m.paid)} · Outstanding {formatMoney(m.outstanding)}
+              </span>
             </div>
           ))}
         </div>
@@ -166,7 +239,7 @@ export default function DashboardClient({
         <div className="card" data-reveal>
           <div className="card-head">
             <h2>Recent clients</h2>
-            <Link href="/clients">View all →</Link>
+            <Link href="/clients">View all <ArrowRight aria-hidden="true" className="icon-inline" size={14} /></Link>
           </div>
           {recentClients.length === 0 ? (
             <p className="hint">No clients yet.</p>
@@ -198,7 +271,7 @@ export default function DashboardClient({
         <div className="card" data-reveal>
           <div className="card-head">
             <h2>Largest outstanding balances</h2>
-            <Link href="/clients">View all →</Link>
+            <Link href="/clients">View all <ArrowRight aria-hidden="true" className="icon-inline" size={14} /></Link>
           </div>
           {rankedClients.length === 0 ? (
             <p className="hint" style={{ marginBottom: 0 }}>Nothing outstanding.</p>
@@ -218,8 +291,27 @@ export default function DashboardClient({
 
       <div className="card" data-reveal>
         <div className="card-head">
+          <h2>Recent activity</h2>
+          <p>From your real clients, invoices, and payments</p>
+        </div>
+        {activity.length === 0 ? (
+          <p className="hint">Nothing yet.</p>
+        ) : (
+          <ul className="attention-list">
+            {activity.map((a, i) => (
+              <li key={`${a.date}-${i}`}>
+                <span>{a.text}</span>
+                <span>{a.date}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="card" data-reveal>
+        <div className="card-head">
           <h2>Recent invoices</h2>
-          <Link href="/invoices">View all →</Link>
+          <Link href="/invoices">View all <ArrowRight aria-hidden="true" className="icon-inline" size={14} /></Link>
         </div>
         {recent.length === 0 ? (
           <EmptyState
@@ -255,11 +347,20 @@ export default function DashboardClient({
         <h2>Demo data</h2>
         <p className="hint">Demo data was added when your account was created. Resetting restores it and removes your changes.</p>
         <div className="actions">
-          <button disabled={resetting} onClick={resetDemo} type="button">
+          <button disabled={resetting} onClick={() => setConfirmReset(true)} type="button">
             {resetting ? "Resetting…" : "Reset demo data"}
           </button>
           {resetDone && <span className="hint" role="status">Demo data restored.</span>}
         </div>
+        <ConfirmDialog
+          busy={resetting}
+          confirmLabel="Reset"
+          message="Reset to the demo clients and invoices? Your changes will be lost."
+          onClose={() => setConfirmReset(false)}
+          onConfirm={async () => { setConfirmReset(false); await resetDemo(); }}
+          open={confirmReset}
+          title="Reset demo data"
+        />
       </div>
       <p className="footer-note">Data is stored in the server database, scoped to your account.</p>
     </Reveal>
