@@ -34,12 +34,28 @@ export default function InvoiceDetailActions({ invoice }: { invoice: Invoice }) 
     if (res.ok) router.push("/invoices");
   }
 
+  async function duplicate() {
+    if (busy) return;
+    setBusy(true);
+    const res = await fetch(`/api/invoices/${invoice.id}/duplicate`, { method: "POST" });
+    setBusy(false);
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+    if (res.ok) {
+      const copy = (await res.json()) as { id: string };
+      router.push(`/invoices/${copy.id}`);
+    }
+  }
+
   return (
     <div className="actions page-actions no-print">
       <button disabled={busy} onClick={togglePaid} type="button">
         {invoice.status === "paid" ? "Mark unpaid" : "Mark paid"}
       </button>
       <button onClick={() => window.print()} type="button">Print / save as PDF</button>
+      <button disabled={busy} onClick={duplicate} type="button">Duplicate</button>
       <a className="btn" href={`/api/invoices/${invoice.id}/pdf`}>Download PDF</a>
       {confirmDelete ? (
         <>

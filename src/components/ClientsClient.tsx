@@ -5,14 +5,24 @@ import { useMemo, useRef, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState } from "./ui";
 import { clientsToCsv, parseClientsCsv } from "../lib/csv";
-import { filterClients } from "../lib/invoices";
-import type { Client } from "../lib/types";
+import { filterClients, formatMoney, outstandingByClient } from "../lib/invoices";
+import type { Client, Invoice, Payment } from "../lib/types";
 import { validateClient } from "../lib/validation";
 
 type SortKey = "name-asc" | "name-desc" | "newest";
 
-export default function ClientsClient({ initialClients }: { initialClients: Client[] }) {
+export default function ClientsClient({
+  initialClients,
+  initialInvoices,
+  initialPayments,
+}: {
+  initialClients: Client[];
+  initialInvoices: Invoice[];
+  initialPayments: Payment[];
+}) {
   const [clients, setClients] = useState(initialClients);
+  const [invoices] = useState(initialInvoices);
+  const [payments] = useState(initialPayments);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("name-asc");
   const [name, setName] = useState("");
@@ -37,6 +47,8 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
     else sorted.sort((a, b) => a.name.localeCompare(b.name));
     return sorted;
   }, [clients, query, sort]);
+
+  const outstanding = useMemo(() => outstandingByClient(invoices, payments), [invoices, payments]);
 
   function clearForm() {
     setEditing(null);
@@ -219,7 +231,7 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
       ) : (
         <div className="card table-wrap" data-reveal>
           <table>
-            <thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Phone</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Phone</th><th>Outstanding</th><th>Actions</th></tr></thead>
             <tbody>
               {filtered.map((c) => (
                 <tr key={c.id}>
@@ -230,6 +242,7 @@ export default function ClientsClient({ initialClients }: { initialClients: Clie
                   <td data-label="Email">{c.email ?? "—"}</td>
                   <td data-label="Company">{c.company ?? "—"}</td>
                   <td data-label="Phone">{c.phone ?? "—"}</td>
+                  <td data-label="Outstanding">{formatMoney(outstanding[c.id] ?? 0)}</td>
                   <td data-label="Actions">
                     <div className="actions">
                       <button onClick={() => startEdit(c)}>Edit</button>
