@@ -84,6 +84,17 @@ describe("filterInvoices", () => {
     expect(filterInvoices(invoices, clients, "WEBSITE", "all", TODAY).map((i) => i.id)).toEqual(["1"]);
     expect(filterInvoices(invoices, clients, "sara", "all", TODAY).map((i) => i.id)).toEqual(["1", "2"]);
   });
+  it("filters by due-date window, bounds inclusive", () => {
+    expect(filterInvoices(invoices, clients, "", "all", TODAY, { dueFrom: "2026-11-01" }).map((i) => i.id)).toEqual(["2"]);
+    expect(filterInvoices(invoices, clients, "", "all", TODAY, { dueTo: "2026-10-31" }).map((i) => i.id)).toEqual(["1"]);
+    expect(filterInvoices(invoices, clients, "", "all", TODAY, { dueFrom: "2026-10-28", dueTo: "2026-10-28" }).map((i) => i.id)).toEqual(["1"]);
+    expect(filterInvoices(invoices, clients, "", "all", TODAY, { dueFrom: "2026-11-05", dueTo: "2026-11-05" }).map((i) => i.id)).toEqual(["2"]);
+  });
+  it("empty due bounds mean no bound, and combine with the status filter", () => {
+    expect(filterInvoices(invoices, clients, "", "all", TODAY, { dueFrom: "", dueTo: "" }).map((i) => i.id)).toEqual(["1", "2"]);
+    expect(filterInvoices(invoices, clients, "", "paid", TODAY, { dueFrom: "2026-11-01" }).map((i) => i.id)).toEqual(["2"]);
+    expect(filterInvoices(invoices, clients, "", "unpaid", TODAY, { dueFrom: "2026-11-01" })).toEqual([]);
+  });
 });
 
 describe("filterClients", () => {

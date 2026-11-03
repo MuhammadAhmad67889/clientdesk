@@ -69,13 +69,22 @@ export function filterInvoices(
   query: string,
   filter: InvoiceFilter,
   today: string,
+  // Optional due-date window. Empty strings mean "no bound"; both bounds
+  // are inclusive, so "due from 2026-11-01 to 2026-11-30" keeps invoices
+  // due on either end of the range. Dates are YYYY-MM-DD, so plain
+  // string comparison orders them correctly.
+  options?: { dueFrom?: string; dueTo?: string },
 ): Invoice[] {
   const q = query.trim().toLowerCase();
+  const dueFrom = options?.dueFrom?.trim() ?? "";
+  const dueTo = options?.dueTo?.trim() ?? "";
   const byId = new Map(clients.map((c) => [c.id, c]));
   return invoices.filter((inv) => {
     if (filter === "paid" && inv.status !== "paid") return false;
     if (filter === "unpaid" && inv.status !== "unpaid") return false;
     if (filter === "overdue" && !isOverdue(inv, today)) return false;
+    if (dueFrom && inv.dueDate < dueFrom) return false;
+    if (dueTo && inv.dueDate > dueTo) return false;
     if (!q) return true;
     const client = byId.get(inv.clientId);
     return [inv.description, client?.name ?? "", client?.company ?? ""]

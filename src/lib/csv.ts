@@ -30,6 +30,21 @@ export function invoicesToCsv(
   return [header, ...rows].join("\n") + "\n";
 }
 
+export function clientsToCsv(clients: Client[]): string {
+  const header = ["Name", "Email", "Company", "Phone", "Notes", "Created"].join(",");
+  const rows = clients.map((c) =>
+    [
+      escapeCell(c.name),
+      escapeCell(c.email ?? ""),
+      escapeCell(c.company ?? ""),
+      escapeCell(c.phone ?? ""),
+      escapeCell(c.notes ?? ""),
+      escapeCell(c.createdAt),
+    ].join(","),
+  );
+  return [header, ...rows].join("\n") + "\n";
+}
+
 /** Parse one CSV record, honouring quoted fields and "" escapes. */
 function parseCsvLine(line: string): string[] {
   const cells: string[] = [];
