@@ -4,7 +4,7 @@ import { getSessionUser, updateBusinessName } from "../../../lib/data";
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ email: null }, { status: 401 });
-  return NextResponse.json({ email: user.email });
+  return NextResponse.json({ email: user.email, plan: user.plan });
 }
 
 export async function PUT(req: NextRequest) {
