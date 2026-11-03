@@ -5,6 +5,7 @@ import InvoiceDetailActions from "../../../components/InvoiceDetailActions";
 import DeletePaymentButton from "../../../components/DeletePaymentButton";
 import EditInvoiceForm from "../../../components/EditInvoiceForm";
 import RecordPaymentForm from "../../../components/RecordPaymentForm";
+import ReminderDraft from "../../../components/ReminderDraft";
 import { StatusBadge } from "../../../components/ui";
 import { getSessionUser, listClients, listInvoices, listPaymentsForInvoice } from "../../../lib/data";
 import { computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney, isOverdue, todayIso } from "../../../lib/invoices";
@@ -76,6 +77,15 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         )}
         <RecordPaymentForm balance={balance} invoiceId={invoice.id} />
       </div>
+      <ReminderDraft
+        balance={balance}
+        clientName={client?.name ?? "Unknown client"}
+        dueDate={invoice.dueDate}
+        invoiceNumber={formatInvoiceNumber(invoice.number)}
+        paid={paid}
+        today={today}
+        total={computeInvoiceTotal(invoice)}
+      />
     </Reveal>
   );
 }
