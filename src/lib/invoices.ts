@@ -28,7 +28,6 @@ export function computeInvoiceTotal(invoice: Invoice): number {
   return roundMoney(discounted * (1 + invoice.taxRate / 100));
 }
 
-/** Sum of recorded payments against an invoice, rounded to cents. */
 export function computeAmountPaid(payments: Payment[]): number {
   return roundMoney(payments.reduce((sum, p) => sum + p.amount, 0));
 }
