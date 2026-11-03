@@ -279,6 +279,12 @@ export async function listPaymentsForInvoice(userId: string, invoiceId: string, 
   return rows.map((r) => ({ amount: r.amount, id: r.id, invoiceId: r.invoiceId, paidAt: r.paidAt, userId: r.userId }));
 }
 
+/** Every payment for one user, oldest first (used for CSV export and totals). */
+export async function listPayments(userId: string, db: PrismaClient = getPrisma()): Promise<Payment[]> {
+  const rows = await db.payment.findMany({ orderBy: { paidAt: "asc" }, where: { userId } });
+  return rows.map((r) => ({ amount: r.amount, id: r.id, invoiceId: r.invoiceId, paidAt: r.paidAt, userId: r.userId }));
+}
+
 /**
  * Record a payment. Returns null when the invoice is not the user's, or
  * the amount exceeds the remaining balance. When payments reach the

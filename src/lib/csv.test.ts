@@ -22,9 +22,15 @@ describe("invoicesToCsv", () => {
   it("writes header and one row with overdue derived status", () => {
     const csv = invoicesToCsv([invoice], clients, "2026-10-29");
     expect(csv).toBe(
-      "Invoice ID,Number,Client,Description,Amount,Discount %,Tax %,Total,Status,Issued,Due\n" +
-        'inv-1,INV-003,Sara Khan,"Website, homepage",450.00,0,0,450.00,overdue,2026-10-09,2026-10-24\n',
+      "Invoice ID,Number,Client,Description,Amount,Discount %,Tax %,Total,Paid,Balance,Status,Issued,Due\n" +
+        'inv-1,INV-003,Sara Khan,"Website, homepage",450.00,0,0,450.00,0.00,450.00,overdue,2026-10-09,2026-10-24\n',
     );
+  });
+  it("writes paid and remaining balance from recorded payments", () => {
+    const csv = invoicesToCsv([invoice], clients, "2026-10-29", [
+      { amount: 100, id: "p1", invoiceId: "inv-1", paidAt: "2026-10-20", userId: "u1" },
+    ]);
+    expect(csv).toContain("450.00,100.00,350.00,overdue");
   });
   it("escapes quotes and uses unknown client for missing client", () => {
     const csv = invoicesToCsv(
@@ -37,7 +43,7 @@ describe("invoicesToCsv", () => {
   });
   it("writes only the header for no invoices", () => {
     expect(invoicesToCsv([], clients, "2026-10-29")).toBe(
-      "Invoice ID,Number,Client,Description,Amount,Discount %,Tax %,Total,Status,Issued,Due\n",
+      "Invoice ID,Number,Client,Description,Amount,Discount %,Tax %,Total,Paid,Balance,Status,Issued,Due\n",
     );
   });
 });
