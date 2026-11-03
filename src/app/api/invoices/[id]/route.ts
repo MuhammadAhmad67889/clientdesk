@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteInvoice, getSessionUser, listInvoices, setInvoicePaid, updateInvoice } from "../../../../lib/data";
+import { computeItemsSubtotal, parseInvoiceItems, validateInvoiceItems } from "../../../../lib/invoices";
 import { validateInvoice } from "../../../../lib/validation";
 
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -16,8 +17,17 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   const invoices = await listInvoices(user.id);
   const invoice = invoices.find((i) => i.id === id);
   if (!invoice) return NextResponse.json({ error: "Invoice not found." }, { status: 404 });
+  const items = body && "items" in body ? parseInvoiceItems(body.items) : undefined;
+  if (items === null) {
+    return NextResponse.json({ errors: { form: "Line items are invalid." } }, { status: 400 });
+  }
+  const itemsError = items ? validateInvoiceItems(items) : null;
+  if (itemsError) {
+    return NextResponse.json({ errors: { form: itemsError } }, { status: 400 });
+  }
+  const amount = items && items.length > 0 ? computeItemsSubtotal(items) : Number(body?.amount);
   const input = {
-    amount: Number(body?.amount),
+    amount,
     clientId: invoice.clientId,
     description: typeof body?.description === "string" ? body.description : "",
     discountRate: Number(body?.discountRate ?? 0),
@@ -31,6 +41,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     description: input.description.trim(),
     discountRate: input.discountRate,
     dueDate: input.dueDate,
+    items,
     taxRate: input.taxRate,
   });
   if (!updated) return NextResponse.json({ error: "Invoice not found." }, { status: 404 });
