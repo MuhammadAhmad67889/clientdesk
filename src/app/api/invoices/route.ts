@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createInvoice, getSessionUser, getUsage, listInvoices } from "../../../lib/data";
 import { freeLimitMessage, planAllowsCreate } from "../../../lib/plans";
+import { computeItemsSubtotal, parseInvoiceItems, validateInvoiceItems } from "../../../lib/invoices";
 import { validateInvoice } from "../../../lib/validation";
 
 export async function GET() {
@@ -16,7 +17,17 @@ export async function POST(req: NextRequest) {
   const clientId = typeof body?.clientId === "string" ? body.clientId : "";
   const description = typeof body?.description === "string" ? body.description : "";
   const dueDate = typeof body?.dueDate === "string" ? body.dueDate : "";
-  const amount = Number(body?.amount);
+  const items = body && "items" in body ? parseInvoiceItems(body.items) : undefined;
+  if (items === null) {
+    return NextResponse.json({ errors: { form: "Line items are invalid." } }, { status: 400 });
+  }
+  const itemsError = items ? validateInvoiceItems(items) : null;
+  if (itemsError) {
+    return NextResponse.json({ errors: { form: itemsError } }, { status: 400 });
+  }
+  // With line items, the amount is their subtotal; otherwise it is
+  // the single amount from the form.
+  const amount = items && items.length > 0 ? computeItemsSubtotal(items) : Number(body?.amount);
   const discountRate = body?.discountRate === "" || body?.discountRate === undefined ? 0 : Number(body?.discountRate);
   const taxRate = body?.taxRate === "" || body?.taxRate === undefined ? 0 : Number(body?.taxRate);
   const errors = validateInvoice({ amount, clientId, description, discountRate, dueDate, taxRate });
@@ -31,6 +42,7 @@ export async function POST(req: NextRequest) {
     description: description.trim(),
     discountRate,
     dueDate,
+    items,
     status: "unpaid",
     taxRate,
   });
