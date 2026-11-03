@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Reveal from "../../components/Reveal";
+import BusinessNameForm from "../../components/BusinessNameForm";
 import ChangePasswordForm from "../../components/ChangePasswordForm";
 import { getSessionUser } from "../../lib/data";
 
@@ -23,6 +24,7 @@ export default async function SettingsPage() {
         </p>
       </div>
       <ChangePasswordForm />
+      <BusinessNameForm initialName={user.businessName ?? ""} />
     </Reveal>
   );
 }
