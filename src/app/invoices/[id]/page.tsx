@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import Reveal from "../../../components/Reveal";
 import InvoiceDetailActions from "../../../components/InvoiceDetailActions";
@@ -8,7 +9,7 @@ import RecordPaymentForm from "../../../components/RecordPaymentForm";
 import ReminderDraft from "../../../components/ReminderDraft";
 import { StatusBadge } from "../../../components/ui";
 import { getSessionUser, listClients, listInvoices, listPaymentsForInvoice } from "../../../lib/data";
-import { computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney, isOverdue, todayIso } from "../../../lib/invoices";
+import { computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney, isOverdue, roundMoney, todayIso } from "../../../lib/invoices";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   return (
     <Reveal>
       <div className="page-head">
-        <p style={{ margin: 0 }}><Link href="/invoices">← All invoices</Link></p>
+        <p style={{ margin: 0 }}><Link href="/invoices"><ArrowLeft aria-hidden="true" className="icon-inline" size={14} /> All invoices</Link></p>
         <h1 style={{ marginTop: 8 }}>{invoice.description}</h1>
         <p className="lead">
           For {client ? <Link href={`/clients/${client.id}`}>{client.name}</Link> : "Unknown client"} · Issued {invoice.issuedDate} · Due {invoice.dueDate}
@@ -44,6 +45,18 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         <p>Invoice number: <strong>{formatInvoiceNumber(invoice.number)}</strong></p>
         {user.businessName && <p>From: {user.businessName}</p>}
         <p>Description: {invoice.description}</p>
+        {invoice.items && invoice.items.length > 0 && (
+          <div>
+            <p style={{ marginBottom: 4 }}>Line items:</p>
+            <ul style={{ marginTop: 0 }}>
+              {invoice.items.map((it) => (
+                <li key={it.id}>
+                  {it.description} — {it.quantity} × {formatMoney(it.unitPrice)} = {formatMoney(roundMoney(it.quantity * it.unitPrice))}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <p>Amount: <strong>{formatMoney(invoice.amount)}</strong></p>
         {invoice.discountRate > 0 && <p>Discount: {invoice.discountRate}%</p>}
         {invoice.taxRate > 0 && <p>Tax: {invoice.taxRate}% (on the discounted amount)</p>}
@@ -69,7 +82,9 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         ) : (
           <ul style={{ margin: "0 0 16px", paddingLeft: 20 }}>
             {payments.map((p) => (
-              <li key={p.id}>{p.paidAt} — {formatMoney(p.amount)}{" "}
+              <li key={p.id}>{p.paidAt} — {formatMoney(p.amount)}
+                {p.method ? ` · ${p.method}` : ""}
+                {p.reference ? ` · ref ${p.reference}` : ""}{" "}
                 <span className="no-print"><DeletePaymentButton invoiceId={invoice.id} paymentId={p.id} /></span>
               </li>
             ))}
