@@ -38,9 +38,14 @@ function isValidDate(year: number, month: number, day: number): boolean {
   return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
 }
 
+// One amount, written two ways: grouped thousands ("1,200.00") or a
+// plain number ("1200" or "1200.50"). The grouped form must actually
+// contain a comma group, otherwise "1200" would match as just "120".
+const AMOUNT_PATTERN = String.raw`\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?`;
+
 function parseMarkedAmounts(text: string): number[] {
   const amounts: number[] = [];
-  const re = /(?:\$|USD|Rs\.?|PKR)\s*(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/gi;
+  const re = new RegExp(String.raw`(?:\$|USD|Rs\.?|PKR)\s*(${AMOUNT_PATTERN})`, "gi");
   for (const m of text.matchAll(re)) amounts.push(Number(m[1].replace(/,/g, "")));
   return amounts;
 }
@@ -50,7 +55,7 @@ function parseBareTotal(text: string): number | null {
     if (!/(total|amount|due|payable)/i.test(line)) continue;
     // Dates are not amounts: strip them before looking for a number.
     const withoutDates = line.replace(/\d{4}-\d{2}-\d{2}/g, "").replace(/\d{1,2}\/\d{1,2}\/\d{4}/g, "");
-    const m = withoutDates.match(/(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/);
+    const m = withoutDates.match(new RegExp(`(${AMOUNT_PATTERN})`));
     if (m) return Number(m[1].replace(/,/g, ""));
   }
   return null;
@@ -75,11 +80,7 @@ function parseDueDate(text: string): string | null {
 export function parseInvoiceDraft(text: string, clients: Client[]): InvoiceDraft {
   const marked = parseMarkedAmounts(text);
   const amount = marked.length > 0 ? Math.max(...marked) : parseBareTotal(text);
-  const lowered = text.toLowerCase();
-  let client: Client | null = null;
-  for (const c of clients) {
-    if (lowered.includes(c.name.toLowerCase()) && (!client || c.name.length > client.name.length)) client = c;
-  }
+  const client = findClientInText(text, clients);
   const firstLine = text.split(/\r?\n/).find((line) => line.trim().length > 0)?.trim() ?? "";
   return {
     amount: amount === null || Number.isNaN(amount) ? null : roundMoney(amount),
@@ -88,6 +89,18 @@ export function parseInvoiceDraft(text: string, clients: Client[]): InvoiceDraft
     description: firstLine.slice(0, 120),
     dueDate: parseDueDate(text),
   };
+}
+
+/** The longest client name found in the text. Longest wins so that
+ * "Acme Studio" beats "Acme" when both appear; on a tie, the first
+ * client in the list wins. */
+function findClientInText(text: string, clients: Client[]): Client | null {
+  const lowered = text.toLowerCase();
+  let match: Client | null = null;
+  for (const c of clients) {
+    if (lowered.includes(c.name.toLowerCase()) && (!match || c.name.length > match.name.length)) match = c;
+  }
+  return match;
 }
 
 /** A reminder email draft for one invoice. The numbers come from the
@@ -101,8 +114,9 @@ export function buildReminderDraft(input: {
   today: string;
   total: number;
 }): { body: string; subject: string } {
+  const MS_PER_DAY = 86_400_000;
   const overdueDays = Math.floor(
-    (Date.parse(`${input.today}T00:00:00Z`) - Date.parse(`${input.dueDate}T00:00:00Z`)) / 86_400_000,
+    (Date.parse(`${input.today}T00:00:00Z`) - Date.parse(`${input.dueDate}T00:00:00Z`)) / MS_PER_DAY,
   );
   const subject = `Reminder: invoice ${input.invoiceNumber} — $${input.balance.toFixed(2)} outstanding`;
   const timing =
