@@ -20,6 +20,7 @@ model User {
   email        String    @unique
   id           String    @id @default(cuid())
   passwordHash String
+  plan         String    @default("free")
   clients      Client[]
   invoices     Invoice[]
   payments     Payment[]
