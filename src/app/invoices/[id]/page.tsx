@@ -40,8 +40,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           Status: {isOverdue(invoice, today) ? "Overdue — unpaid and past its due date." : invoice.status === "paid" ? "Paid." : "Unpaid."}
         </p>
         <p className="hint no-print" style={{ marginTop: 16 }}>
-          “Print / save as PDF” uses your browser print dialog — choose “Save as PDF” there.
-          No PDF is generated on the server.
+          “Download PDF” generates a real PDF on the server for this invoice.
+          “Print / save as PDF” uses your browser print dialog instead.
         </p>
       </div>
     </Reveal>
