@@ -10,6 +10,7 @@ export interface SessionUser {
   businessName?: string;
   email: string;
   id: string;
+  plan: string;
 }
 
 function dateToDay(d: Date): string {
@@ -118,10 +119,23 @@ export async function getSessionUser(
       await db.session.delete({ where: { id: session.id } }).catch(() => undefined);
       return null;
     }
-    return { businessName: session.user.businessName ?? undefined, email: session.user.email, id: session.user.id };
+    return { businessName: session.user.businessName ?? undefined, email: session.user.email, id: session.user.id, plan: session.user.plan };
   } catch {
     return null;
   }
+}
+
+/** A user's plan plus how many clients and invoices they already have. */
+export async function getUsage(
+  userId: string,
+  db: PrismaClient = getPrisma(),
+): Promise<{ clientCount: number; invoiceCount: number; plan: string }> {
+  const [user, clientCount, invoiceCount] = await Promise.all([
+    db.user.findUnique({ where: { id: userId } }),
+    db.client.count({ where: { userId } }),
+    db.invoice.count({ where: { userId } }),
+  ]);
+  return { clientCount, invoiceCount, plan: user?.plan ?? "free" };
 }
 
 /** Every query below filters by userId: users only ever see their own rows. */
