@@ -31,6 +31,12 @@ function wrapText(
  * no session, no network — the API route owns auth and ownership checks.
  * Uses only the built-in Helvetica font, so there is nothing to embed.
  */
+/** The payment-history lines printed on the PDF, oldest first. */
+export function paymentLines(payments: Payment[]): string[] {
+  const sorted = [...payments].sort((a, b) => a.paidAt.localeCompare(b.paidAt));
+  return ["Payments:", ...sorted.map((p) => `${p.paidAt} — ${formatMoney(p.amount)}`)];
+}
+
 export async function buildInvoicePdf(
   invoice: Invoice,
   client: Client | undefined,
@@ -83,6 +89,7 @@ export async function buildInvoicePdf(
   if (payments && payments.length > 0) {
     draw(`Paid so far: ${formatMoney(computeAmountPaid(payments))}`, 12);
     draw(`Remaining balance: ${formatMoney(computeRemainingBalance(invoice, payments))}`, 12, true);
+    for (const line of paymentLines(payments)) draw(line, 12);
   }
   draw(`Status: ${statusLabel}`, 12);
   draw(`Issued: ${invoice.issuedDate}`, 12);

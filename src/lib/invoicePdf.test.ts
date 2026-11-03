@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
-import { buildInvoicePdf } from "./invoicePdf";
+import { buildInvoicePdf, paymentLines } from "./invoicePdf";
 import type { Client, Invoice } from "./types";
 
 const invoice: Invoice = {
@@ -44,5 +44,29 @@ describe("buildInvoicePdf", () => {
     );
     const loaded = await PDFDocument.load(bytes);
     expect(loaded.getPageCount()).toBe(1);
+  });
+  it("stays one page with several payments listed", async () => {
+    const payments = Array.from({ length: 5 }, (_, i) => ({
+      amount: 50,
+      id: `p${i}`,
+      invoiceId: "inv-1",
+      paidAt: `2026-10-2${i}`,
+      userId: "u1",
+    }));
+    const bytes = await buildInvoicePdf(invoice, client, "Unpaid", undefined, payments);
+    const loaded = await PDFDocument.load(bytes);
+    expect(loaded.getPageCount()).toBe(1);
+  });
+});
+
+describe("paymentLines", () => {
+  it("lists payments oldest first with formatted amounts", () => {
+    expect(paymentLines([
+      { amount: 50, id: "p2", invoiceId: "inv-1", paidAt: "2026-10-21", userId: "u1" },
+      { amount: 100, id: "p1", invoiceId: "inv-1", paidAt: "2026-10-20", userId: "u1" },
+    ])).toEqual(["Payments:", "2026-10-20 — $100.00", "2026-10-21 — $50.00"]);
+  });
+  it("returns only the heading for no payments", () => {
+    expect(paymentLines([])).toEqual(["Payments:"]);
   });
 });
