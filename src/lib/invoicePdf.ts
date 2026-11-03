@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { PDFFont } from "pdf-lib";
-import { computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney } from "./invoices";
+import { computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney, roundMoney } from "./invoices";
 import type { Client, Invoice, Payment } from "./types";
 
 /** Word-wrap a line to fit `maxWidth` at the given font/size. */
@@ -82,6 +82,11 @@ export async function buildInvoicePdf(
   if (client?.email) draw(`Email: ${client.email}`, 12, false, grey);
   y -= 8;
   draw(`Description: ${invoice.description}`, 12);
+  if (invoice.items && invoice.items.length > 0) {
+    for (const it of invoice.items) {
+      draw(`${it.description} — ${it.quantity} × ${formatMoney(it.unitPrice)} = ${formatMoney(roundMoney(it.quantity * it.unitPrice))}`, 12);
+    }
+  }
   draw(`Amount: ${formatMoney(invoice.amount)}`, 12);
   if (invoice.discountRate > 0) draw(`Discount: ${invoice.discountRate}%`, 12);
   if (invoice.taxRate > 0) draw(`Tax: ${invoice.taxRate}% (on the discounted amount)`, 12);

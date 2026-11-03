@@ -19,8 +19,8 @@ import type { Client, Invoice } from "./types";
 
 const TODAY = "2026-10-29";
 const clients: Client[] = [
-  { createdAt: "2026-10-01", email: "a@example.com", id: "c1", name: "Sara Khan" },
-  { createdAt: "2026-10-02", id: "c2", name: "Omar Raza" },
+  { archived: false, createdAt: "2026-10-01", email: "a@example.com", id: "c1", name: "Sara Khan" },
+  { archived: false, createdAt: "2026-10-02", id: "c2", name: "Omar Raza" },
 ];
 function inv(partial: Partial<Invoice> & { id: string }): Invoice {
   return {
@@ -127,7 +127,7 @@ describe("applyPaymentDeletion", () => {
 describe("buildDuplicateInput", () => {
   it("copies terms but forces unpaid and drops identity fields", () => {
     const input = buildDuplicateInput(inv({ amount: 400, discountRate: 10, id: "1", number: 7, status: "paid", taxRate: 5 }));
-    expect(input).toEqual({ amount: 400, clientId: "c1", description: "Work", discountRate: 10, dueDate: "2026-11-01", status: "unpaid", taxRate: 5 });
+    expect(input).toEqual({ amount: 400, clientId: "c1", description: "Work", discountRate: 10, dueDate: "2026-11-01", items: [], status: "unpaid", taxRate: 5 });
     expect(input).not.toHaveProperty("id");
     expect(input).not.toHaveProperty("number");
   });

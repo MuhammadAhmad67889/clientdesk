@@ -20,11 +20,14 @@ export function invoicesToCsv(
     list.push(p);
     byInvoice.set(p.invoiceId, list);
   }
-  const header = ["Invoice ID", "Number", "Client", "Description", "Amount", "Discount %", "Tax %", "Total", "Paid", "Balance", "Status", "Issued", "Due"].join(",");
+  const header = ["Invoice ID", "Number", "Client", "Description", "Amount", "Discount %", "Tax %", "Total", "Paid", "Balance", "Status", "Issued", "Due", "Items"].join(",");
   const rows = invoices.map((inv) => {
     const client = byId.get(inv.clientId);
     const status = isOverdue(inv, today) ? "overdue" : inv.status;
     const paid = computeAmountPaid(byInvoice.get(inv.id) ?? []);
+    const items = (inv.items ?? [])
+      .map((it) => `${it.description} (${it.quantity} × ${it.unitPrice.toFixed(2)})`)
+      .join("; ");
     return [
       escapeCell(inv.id),
       escapeCell(formatInvoiceNumber(inv.number)),
@@ -39,6 +42,7 @@ export function invoicesToCsv(
       escapeCell(status),
       escapeCell(inv.issuedDate),
       escapeCell(inv.dueDate),
+      escapeCell(items),
     ].join(",");
   });
   return [header, ...rows].join("\n") + "\n";

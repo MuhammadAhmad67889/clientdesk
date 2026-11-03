@@ -16,6 +16,7 @@ const invoice: Invoice = {
   taxRate: 0,
 };
 const client: Client = {
+  archived: false,
   company: "Northside Bakery",
   createdAt: "2026-10-01",
   email: "sara@example.com",

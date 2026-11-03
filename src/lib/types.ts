@@ -1,6 +1,7 @@
 export type InvoiceStatus = "paid" | "unpaid";
 
 export interface Client {
+  archived: boolean;
   company?: string;
   createdAt: string;
   email?: string;
@@ -8,6 +9,13 @@ export interface Client {
   name: string;
   notes?: string;
   phone?: string;
+}
+
+export interface InvoiceItem {
+  description: string;
+  id: string;
+  quantity: number;
+  unitPrice: number;
 }
 
 export interface Invoice {
@@ -18,6 +26,7 @@ export interface Invoice {
   dueDate: string; // YYYY-MM-DD
   id: string;
   issuedDate: string; // YYYY-MM-DD
+  items?: InvoiceItem[]; // absent for old single-amount invoices
   number: number | null; // per-user sequence; null for pre-numbering invoices
   status: InvoiceStatus;
   taxRate: number; // percent, 0–100; applied to the discounted amount
@@ -41,7 +50,9 @@ export interface Payment {
   amount: number;
   id: string;
   invoiceId: string;
+  method?: string; // e.g. "Bank transfer", "Cash" — free text, optional
   paidAt: string; // YYYY-MM-DD
+  reference?: string; // transaction reference, optional
   userId: string;
 }
 

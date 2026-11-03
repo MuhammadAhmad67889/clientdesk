@@ -42,7 +42,55 @@ export interface InvoiceEdit {
   description: string;
   discountRate: number;
   dueDate: string;
+  items?: InvoiceItemInput[];
   taxRate: number;
+}
+
+/** A line item as a form or API sends it — no id yet. */
+export interface InvoiceItemInput {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+/** Base amount from line items: quantity × unit price, summed and
+ * rounded to cents. Used as the invoice amount when items exist. */
+export function computeItemsSubtotal(items: InvoiceItemInput[]): number {
+  return roundMoney(items.reduce((sum, it) => sum + it.quantity * it.unitPrice, 0));
+}
+
+/** One plain error for the whole items list, or null when valid. */
+export function validateInvoiceItems(items: InvoiceItemInput[]): string | null {
+  if (items.length === 0) return "Add at least one line item.";
+  if (items.length > 50) return "At most 50 line items per invoice.";
+  for (const it of items) {
+    if (!it.description.trim()) return "Every line item needs a description.";
+    if (!(it.quantity > 0)) return "Every line item quantity must be more than 0.";
+    if (!(it.unitPrice >= 0)) return "Every line item price must be 0 or more.";
+  }
+  return null;
+}
+
+/** Parse line items from a request body. Null when malformed —
+ * the route answers 400. Quantities and prices are rounded to cents,
+ * because the money math downstream is in cents. */
+export function parseInvoiceItems(value: unknown): InvoiceItemInput[] | null {
+  if (!Array.isArray(value)) return null;
+  const items: InvoiceItemInput[] = [];
+  for (const row of value) {
+    if (!row || typeof row !== "object") return null;
+    const r = row as Record<string, unknown>;
+    if (typeof r.description !== "string") return null;
+    const quantity = Number(r.quantity);
+    const unitPrice = Number(r.unitPrice);
+    if (!Number.isFinite(quantity) || !Number.isFinite(unitPrice)) return null;
+    items.push({
+      description: r.description.trim(),
+      quantity: Math.round(quantity * 100) / 100,
+      unitPrice: Math.round(unitPrice * 100) / 100,
+    });
+  }
+  return items;
 }
 
 /**
@@ -52,7 +100,13 @@ export interface InvoiceEdit {
  * invoice becomes paid; a manually-marked-paid invoice is left alone.
  */
 export function applyInvoiceEdit(invoice: Invoice, payments: Payment[], edit: InvoiceEdit): Invoice {
-  const updated: Invoice = { ...invoice, ...edit };
+  // With line items, the amount is their subtotal — the stored
+  // amount field keeps working as the base for discount and tax.
+  // Item rows themselves are replaced by the data layer; this
+  // function only computes the amount and the status.
+  const { items, ...rest } = edit;
+  const amount = items ? computeItemsSubtotal(items) : edit.amount;
+  const updated: Invoice = { ...invoice, ...rest, amount };
   if (computeAmountPaid(payments) >= computeInvoiceTotal(updated) - 0.001) {
     updated.status = "paid";
   }
@@ -78,15 +132,17 @@ export interface DuplicateInvoiceInput {
   description: string;
   discountRate: number;
   dueDate: string;
+  items: InvoiceItemInput[];
   status: "paid" | "unpaid";
   taxRate: number;
 }
 
 /**
  * The input for duplicating an invoice: same client, terms and due
- * date, but always unpaid with no payments carried over. The new
- * number and issued date are assigned when the copy is created, and
- * the due date can be changed with the edit form afterwards.
+ * date, and the same line items, but always unpaid with no payments
+ * carried over. The new number and issued date are assigned when the
+ * copy is created, and the due date can be changed with the edit form
+ * afterwards.
  */
 export function buildDuplicateInput(invoice: Invoice): DuplicateInvoiceInput {
   return {
@@ -95,6 +151,11 @@ export function buildDuplicateInput(invoice: Invoice): DuplicateInvoiceInput {
     description: invoice.description,
     discountRate: invoice.discountRate,
     dueDate: invoice.dueDate,
+    items: (invoice.items ?? []).map((it) => ({
+      description: it.description,
+      quantity: it.quantity,
+      unitPrice: it.unitPrice,
+    })),
     status: "unpaid",
     taxRate: invoice.taxRate,
   };
@@ -273,6 +334,7 @@ export function formatMoney(amount: number): string {
 export function seedData(today: string): { clients: Client[]; invoices: Invoice[] } {
   const clients: Client[] = [
     {
+      archived: false,
       company: "Northside Bakery",
       createdAt: addDays(today, -40),
       email: "sara@northsidebakery.example",
@@ -281,6 +343,7 @@ export function seedData(today: string): { clients: Client[]; invoices: Invoice[
       phone: "+92 300 111 2222",
     },
     {
+      archived: false,
       company: "Peak Fitness Studio",
       createdAt: addDays(today, -25),
       email: "omar@peakfitness.example",
@@ -288,6 +351,7 @@ export function seedData(today: string): { clients: Client[]; invoices: Invoice[
       name: "Omar Raza",
     },
     {
+      archived: false,
       company: "Blue Door Interiors",
       createdAt: addDays(today, -10),
       email: "ayesha@bluedoor.example",

@@ -2,7 +2,8 @@ import type { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
 import { hashEquals, hashToken, SESSION_COOKIE, verifySessionCookie } from "./auth";
 import { getPrisma } from "./prisma";
-import { applyInvoiceEdit, applyPaymentDeletion, buildDuplicateInput, computeAmountPaid, computeInvoiceTotal, computeRemainingBalance, seedData, todayIso } from "./invoices";
+import { applyInvoiceEdit, applyPaymentDeletion, buildDuplicateInput, computeAmountPaid, computeInvoiceTotal, computeItemsSubtotal, computeRemainingBalance, seedData, todayIso } from "./invoices";
+import type { InvoiceItemInput } from "./invoices";
 import { addMonths, dueTemplates } from "./recurring";
 import type { Client, Invoice, Payment, RecurringTemplate } from "./types";
 
@@ -18,6 +19,7 @@ function dateToDay(d: Date): string {
 }
 
 function toClient(row: {
+  archived: boolean;
   company: string | null;
   createdAt: Date;
   email: string | null;
@@ -27,6 +29,7 @@ function toClient(row: {
   phone: string | null;
 }): Client {
   return {
+    archived: row.archived,
     company: row.company ?? undefined,
     createdAt: dateToDay(row.createdAt),
     email: row.email ?? undefined,
@@ -45,6 +48,7 @@ function toInvoice(row: {
   dueDate: string;
   id: string;
   issuedDate: string;
+  items?: { description: string; id: string; quantity: number; unitPrice: number }[];
   number: number | null;
   status: string;
   taxRate: number;
@@ -57,9 +61,35 @@ function toInvoice(row: {
     dueDate: row.dueDate,
     id: row.id,
     issuedDate: row.issuedDate,
+    items: row.items?.map((it) => ({
+      description: it.description,
+      id: it.id,
+      quantity: it.quantity,
+      unitPrice: it.unitPrice,
+    })),
     number: row.number,
     status: row.status === "paid" ? "paid" : "unpaid",
     taxRate: row.taxRate,
+  };
+}
+
+function toPayment(row: {
+  amount: number;
+  id: string;
+  invoiceId: string;
+  method: string | null;
+  paidAt: string;
+  reference: string | null;
+  userId: string;
+}): Payment {
+  return {
+    amount: row.amount,
+    id: row.id,
+    invoiceId: row.invoiceId,
+    method: row.method ?? undefined,
+    paidAt: row.paidAt,
+    reference: row.reference ?? undefined,
+    userId: row.userId,
   };
 }
 
@@ -163,7 +193,11 @@ export async function listClients(userId: string, db: PrismaClient = getPrisma()
 }
 
 export async function listInvoices(userId: string, db: PrismaClient = getPrisma()): Promise<Invoice[]> {
-  const rows = await db.invoice.findMany({ orderBy: { issuedDate: "desc" }, where: { userId } });
+  const rows = await db.invoice.findMany({
+    include: { items: true },
+    orderBy: { issuedDate: "desc" },
+    where: { userId },
+  });
   return rows.map(toInvoice);
 }
 
@@ -211,19 +245,43 @@ export async function deleteClient(userId: string, id: string, db: PrismaClient 
   return true;
 }
 
+export async function setClientArchived(
+  userId: string,
+  id: string,
+  archived: boolean,
+  db: PrismaClient = getPrisma(),
+): Promise<Client | null> {
+  const existing = await db.client.findFirst({ where: { id, userId } });
+  if (!existing) return null;
+  return toClient(await db.client.update({ data: { archived }, where: { id } }));
+}
+
 export async function createInvoice(
   userId: string,
-  input: { amount: number; clientId: string; description: string; discountRate: number; dueDate: string; status: "paid" | "unpaid"; taxRate: number },
+  input: { amount: number; clientId: string; description: string; discountRate: number; dueDate: string; items?: InvoiceItemInput[]; status: "paid" | "unpaid"; taxRate: number },
   db: PrismaClient = getPrisma(),
 ): Promise<Invoice | null> {
   // The client must belong to this user too.
   const client = await db.client.findFirst({ where: { id: input.clientId, userId } });
   if (!client) return null;
-  return toInvoice(
-    await db.invoice.create({
-      data: { ...input, issuedDate: todayIso(), number: await nextInvoiceNumber(userId, db), userId },
-    }),
-  );
+  // With line items, the stored amount is their subtotal, so the
+  // discount-then-tax math and every old total keep working.
+  const amount = input.items && input.items.length > 0
+    ? computeItemsSubtotal(input.items)
+    : input.amount;
+  const { items, ...rest } = input;
+  const created = await db.invoice.create({
+    data: {
+      ...rest,
+      amount,
+      issuedDate: todayIso(),
+      items: items && items.length > 0 ? { create: items } : undefined,
+      number: await nextInvoiceNumber(userId, db),
+      userId,
+    },
+    include: { items: true },
+  });
+  return toInvoice(created);
 }
 
 export async function setInvoicePaid(
@@ -246,20 +304,29 @@ export async function setInvoicePaid(
 export async function updateInvoice(
   userId: string,
   id: string,
-  input: { amount: number; description: string; discountRate: number; dueDate: string; taxRate: number },
+  input: { amount: number; description: string; discountRate: number; dueDate: string; items?: InvoiceItemInput[]; taxRate: number },
   db: PrismaClient = getPrisma(),
 ): Promise<Invoice | null> {
   const existing = await db.invoice.findFirst({ where: { id, userId } });
   if (!existing) return null;
   const paymentRows = await db.payment.findMany({ where: { invoiceId: id, userId } });
-  const payments = paymentRows.map((r) => ({ amount: r.amount, id: r.id, invoiceId: r.invoiceId, paidAt: r.paidAt, userId: r.userId }));
+  const payments = paymentRows.map(toPayment);
   const updated = applyInvoiceEdit(toInvoice(existing), payments, input);
-  return toInvoice(
-    await db.invoice.update({
-      data: { amount: updated.amount, description: updated.description, discountRate: updated.discountRate, dueDate: updated.dueDate, status: updated.status, taxRate: updated.taxRate },
-      where: { id },
-    }),
-  );
+  await db.invoice.update({
+    data: { amount: updated.amount, description: updated.description, discountRate: updated.discountRate, dueDate: updated.dueDate, status: updated.status, taxRate: updated.taxRate },
+    where: { id },
+  });
+  if (input.items !== undefined) {
+    // Replace the item rows wholesale: an edit is the whole list.
+    await db.$transaction([
+      db.invoiceItem.deleteMany({ where: { invoiceId: id } }),
+      ...(input.items.length > 0
+        ? [db.invoiceItem.createMany({ data: input.items.map((it) => ({ ...it, invoiceId: id })) })]
+        : []),
+    ]);
+  }
+  const refreshed = await db.invoice.findUnique({ include: { items: true }, where: { id } });
+  return refreshed ? toInvoice(refreshed) : null;
 }
 
 export async function deleteInvoice(userId: string, id: string, db: PrismaClient = getPrisma()): Promise<boolean> {
@@ -346,37 +413,53 @@ export async function listPaymentsForInvoice(userId: string, invoiceId: string, 
   const invoice = await db.invoice.findFirst({ where: { id: invoiceId, userId } });
   if (!invoice) return [];
   const rows = await db.payment.findMany({ orderBy: { paidAt: "asc" }, where: { invoiceId, userId } });
-  return rows.map((r) => ({ amount: r.amount, id: r.id, invoiceId: r.invoiceId, paidAt: r.paidAt, userId: r.userId }));
+  return rows.map(toPayment);
 }
 
 export async function listPayments(userId: string, db: PrismaClient = getPrisma()): Promise<Payment[]> {
   const rows = await db.payment.findMany({ orderBy: { paidAt: "asc" }, where: { userId } });
-  return rows.map((r) => ({ amount: r.amount, id: r.id, invoiceId: r.invoiceId, paidAt: r.paidAt, userId: r.userId }));
+  return rows.map(toPayment);
 }
 
 /**
  * Record a payment. Returns null when the invoice is not the user's, or
  * the amount exceeds the remaining balance. When payments reach the
- * invoice total, the invoice flips to paid automatically.
+ * invoice total, the invoice flips to paid automatically. A repeat
+ * submission with the same idempotency key returns the original
+ * payment instead of creating a second one.
  */
 export async function recordPayment(
   userId: string,
   invoiceId: string,
-  input: { amount: number; paidAt: string },
+  input: { amount: number; idempotencyKey?: string; method?: string; paidAt: string; reference?: string },
   db: PrismaClient = getPrisma(),
 ): Promise<Payment | null> {
   const invoice = await db.invoice.findFirst({ where: { id: invoiceId, userId } });
   if (!invoice) return null;
+  if (input.idempotencyKey) {
+    const prior = await db.payment.findFirst({ where: { idempotencyKey: input.idempotencyKey, userId } });
+    if (prior) return toPayment(prior);
+  }
   const inv = toInvoice(invoice);
   const existing = await db.payment.findMany({ where: { invoiceId, userId } });
-  const paid = existing.map((r) => ({ amount: r.amount, id: r.id, invoiceId: r.invoiceId, paidAt: r.paidAt, userId: r.userId }));
+  const paid = existing.map(toPayment);
   if (input.amount - computeRemainingBalance(inv, paid) > 0.001) return null;
-  const created = await db.payment.create({ data: { amount: input.amount, invoiceId, paidAt: input.paidAt, userId } });
-  const newPaid = computeAmountPaid([...paid, { amount: created.amount, id: created.id, invoiceId: created.invoiceId, paidAt: created.paidAt, userId: created.userId }]);
+  const created = await db.payment.create({
+    data: {
+      amount: input.amount,
+      idempotencyKey: input.idempotencyKey ?? null,
+      invoiceId,
+      method: input.method ?? null,
+      paidAt: input.paidAt,
+      reference: input.reference ?? null,
+      userId,
+    },
+  });
+  const newPaid = computeAmountPaid([...paid, toPayment(created)]);
   if (newPaid >= computeInvoiceTotal(inv) - 0.001) {
     await db.invoice.update({ data: { status: "paid" }, where: { id: invoiceId } });
   }
-  return { amount: created.amount, id: created.id, invoiceId: created.invoiceId, paidAt: created.paidAt, userId: created.userId };
+  return toPayment(created);
 }
 
 /**
@@ -396,7 +479,7 @@ export async function deletePayment(
   if (!invoice) return false;
   await db.payment.delete({ where: { id: paymentId } });
   const remainingRows = await db.payment.findMany({ where: { invoiceId, userId } });
-  const remaining = remainingRows.map((r) => ({ amount: r.amount, id: r.id, invoiceId: r.invoiceId, paidAt: r.paidAt, userId: r.userId }));
+  const remaining = remainingRows.map(toPayment);
   const updated = applyPaymentDeletion(toInvoice(invoice), remaining);
   if (updated.status !== invoice.status) {
     await db.invoice.update({ data: { status: updated.status }, where: { id: invoiceId } });

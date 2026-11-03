@@ -3,8 +3,8 @@ import { buildReminderDraft, parseInvoiceDraft, rankClientsByOutstanding, summar
 import type { Client, Invoice, Payment } from "./types";
 
 const clients: Client[] = [
-  { createdAt: "2026-11-01", id: "c1", name: "Acme Studio" },
-  { createdAt: "2026-11-01", id: "c2", name: "Acme" },
+  { archived: false, createdAt: "2026-11-01", id: "c1", name: "Acme Studio" },
+  { archived: false, createdAt: "2026-11-01", id: "c2", name: "Acme" },
 ];
 
 function invoice(overrides: Partial<Invoice>): Invoice {

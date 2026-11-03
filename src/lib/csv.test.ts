@@ -3,7 +3,7 @@ import { clientsToCsv, invoicesToCsv, parseClientsCsv } from "./csv";
 import type { Client, Invoice } from "./types";
 
 const clients: Client[] = [
-  { createdAt: "2026-10-01", id: "c1", name: "Sara Khan" },
+  { archived: false, createdAt: "2026-10-01", id: "c1", name: "Sara Khan" },
 ];
 const invoice: Invoice = {
   amount: 450,
@@ -22,8 +22,8 @@ describe("invoicesToCsv", () => {
   it("writes header and one row with overdue derived status", () => {
     const csv = invoicesToCsv([invoice], clients, "2026-10-29");
     expect(csv).toBe(
-      "Invoice ID,Number,Client,Description,Amount,Discount %,Tax %,Total,Paid,Balance,Status,Issued,Due\n" +
-        'inv-1,INV-003,Sara Khan,"Website, homepage",450.00,0,0,450.00,0.00,450.00,overdue,2026-10-09,2026-10-24\n',
+      "Invoice ID,Number,Client,Description,Amount,Discount %,Tax %,Total,Paid,Balance,Status,Issued,Due,Items\n" +
+        'inv-1,INV-003,Sara Khan,"Website, homepage",450.00,0,0,450.00,0.00,450.00,overdue,2026-10-09,2026-10-24,\n',
     );
   });
   it("writes paid and remaining balance from recorded payments", () => {
@@ -43,8 +43,16 @@ describe("invoicesToCsv", () => {
   });
   it("writes only the header for no invoices", () => {
     expect(invoicesToCsv([], clients, "2026-10-29")).toBe(
-      "Invoice ID,Number,Client,Description,Amount,Discount %,Tax %,Total,Paid,Balance,Status,Issued,Due\n",
+      "Invoice ID,Number,Client,Description,Amount,Discount %,Tax %,Total,Paid,Balance,Status,Issued,Due,Items\n",
     );
+  });
+  it("lists line items in the Items column", () => {
+    const csv = invoicesToCsv(
+      [{ ...invoice, items: [{ description: "Design", id: "it1", quantity: 2, unitPrice: 50 }] }],
+      clients,
+      "2026-10-29",
+    );
+    expect(csv).toContain("Design (2 × 50.00)");
   });
 });
 
@@ -52,6 +60,7 @@ describe("clientsToCsv", () => {
   it("writes header and one row, escaping commas and quotes", () => {
     const csv = clientsToCsv([
       {
+        archived: false,
         company: "Northside, Bakery",
         createdAt: "2026-10-01",
         email: "sara@example.com",
@@ -67,7 +76,7 @@ describe("clientsToCsv", () => {
     );
   });
   it("writes empty cells for missing fields and only the header for no clients", () => {
-    expect(clientsToCsv([{ createdAt: "2026-10-01", id: "c1", name: "Omar Raza" }])).toBe(
+    expect(clientsToCsv([{ archived: false, createdAt: "2026-10-01", id: "c1", name: "Omar Raza" }])).toBe(
       "Name,Email,Company,Phone,Notes,Created\nOmar Raza,,,,,2026-10-01\n",
     );
     expect(clientsToCsv([])).toBe("Name,Email,Company,Phone,Notes,Created\n");
