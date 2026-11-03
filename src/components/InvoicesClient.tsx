@@ -6,7 +6,7 @@ import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
 import { invoicesToCsv } from "../lib/csv";
 import { computeInvoiceTotal, filterInvoices, formatMoney, isOverdue, todayIso } from "../lib/invoices";
-import type { Client, Invoice, InvoiceFilter } from "../lib/types";
+import type { Client, Invoice, InvoiceFilter, RecurringTemplate } from "../lib/types";
 import { validateInvoice } from "../lib/validation";
 
 type SortKey = "due-asc" | "issued-desc" | "amount-desc";
@@ -14,12 +14,15 @@ type SortKey = "due-asc" | "issued-desc" | "amount-desc";
 export default function InvoicesClient({
   initialClients,
   initialInvoices,
+  initialRecurring,
 }: {
   initialClients: Client[];
   initialInvoices: Invoice[];
+  initialRecurring: RecurringTemplate[];
 }) {
   const [clients] = useState(initialClients);
   const [invoices, setInvoices] = useState(initialInvoices);
+  const [recurring, setRecurring] = useState(initialRecurring);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<InvoiceFilter>("all");
   const [dueFrom, setDueFrom] = useState("");
@@ -35,6 +38,15 @@ export default function InvoicesClient({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedNote, setSavedNote] = useState("");
+  const [rClientId, setRClientId] = useState("");
+  const [rDescription, setRDescription] = useState("");
+  const [rAmount, setRAmount] = useState("");
+  const [rDiscount, setRDiscount] = useState("");
+  const [rTax, setRTax] = useState("");
+  const [rNextDue, setRNextDue] = useState("");
+  const [rErrors, setRErrors] = useState<Record<string, string>>({});
+  const [rNote, setRNote] = useState("");
+  const [generating, setGenerating] = useState(false);
 
   const today = todayIso();
   const filtered = useMemo(() => {
@@ -110,6 +122,72 @@ export default function InvoicesClient({
     if (res.ok) setInvoices((prev) => prev.filter((i) => i.id !== id));
   }
 
+  async function submitRecurring(e: React.FormEvent) {
+    e.preventDefault();
+    const parsedAmount = Number(rAmount);
+    const parsedDiscount = rDiscount === "" ? 0 : Number(rDiscount);
+    const parsedTax = rTax === "" ? 0 : Number(rTax);
+    const errs = validateInvoice({ amount: parsedAmount, clientId: rClientId, description: rDescription, discountRate: parsedDiscount, dueDate: rNextDue, taxRate: parsedTax });
+    setRErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+    const res = await fetch("/api/recurring", {
+      body: JSON.stringify({
+        amount: Math.round(parsedAmount * 100) / 100,
+        clientId: rClientId,
+        description: rDescription.trim(),
+        discountRate: parsedDiscount,
+        nextDueDate: rNextDue,
+        taxRate: parsedTax,
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { errors?: Record<string, string> } | null;
+      setRErrors(data?.errors ?? { form: "Could not save the recurring invoice." });
+      return;
+    }
+    const saved = (await res.json()) as RecurringTemplate;
+    setRecurring((prev) => [...prev, saved]);
+    setRClientId(""); setRDescription(""); setRAmount(""); setRDiscount(""); setRTax(""); setRNextDue(""); setRErrors({});
+    setRNote("Recurring invoice added. It generates one invoice when its due date arrives.");
+  }
+
+  async function stopRecurring(id: string) {
+    const res = await fetch(`/api/recurring/${id}`, { method: "DELETE" });
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+    if (res.ok) setRecurring((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  async function generateDue() {
+    if (generating) return;
+    setGenerating(true);
+    const res = await fetch("/api/recurring/generate", { method: "POST" });
+    setGenerating(false);
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+    if (!res.ok) {
+      setRNote("Could not generate due invoices.");
+      return;
+    }
+    const data = (await res.json()) as { created: number };
+    if (data.created > 0) {
+      const [invRes, recRes] = await Promise.all([fetch("/api/invoices"), fetch("/api/recurring")]);
+      if (invRes.ok) setInvoices((await invRes.json()) as Invoice[]);
+      if (recRes.ok) setRecurring((await recRes.json()) as RecurringTemplate[]);
+    }
+    setRNote(data.created === 0 ? "Nothing due today." : `Generated ${data.created} invoice${data.created === 1 ? "" : "s"}.`);
+  }
+
   function exportCsv() {
     const csv = invoicesToCsv(filtered, clients, today);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -174,6 +252,62 @@ export default function InvoicesClient({
           </div>
         </form>
       )}
+
+      <div className="card" data-reveal>
+        <h2 style={{ marginTop: 0 }}>Recurring invoices</h2>
+        <p className="hint" style={{ marginTop: 0 }}>
+          A monthly retainer: one invoice is generated when its due date arrives, then the
+          next due date moves one month on. Nothing is generated automatically in the
+          background — press “Generate due now” and only due templates produce an invoice.
+        </p>
+        <form className="grid" onSubmit={submitRecurring}>
+          <label className="full">Client *
+            <select value={rClientId} onChange={(e) => setRClientId(e.target.value)}>
+              <option value="">Choose a client</option>
+              {clients.map((c) => <option key={c.id} value={c.id}>{c.name}{c.company ? ` — ${c.company}` : ""}</option>)}
+            </select>
+            {rErrors.clientId && <span className="error">{rErrors.clientId}</span>}
+          </label>
+          <label className="full">Description *
+            <input value={rDescription} onChange={(e) => setRDescription(e.target.value)} placeholder="Monthly maintenance" />
+            {rErrors.description && <span className="error">{rErrors.description}</span>}
+          </label>
+          <label>Amount ($) *
+            <input type="number" min="0" step="0.01" inputMode="decimal" value={rAmount} onChange={(e) => setRAmount(e.target.value)} placeholder="600.00" />
+            {rErrors.amount && <span className="error">{rErrors.amount}</span>}
+          </label>
+          <label>First due date *
+            <input type="date" value={rNextDue} onChange={(e) => setRNextDue(e.target.value)} />
+            {rErrors.dueDate && <span className="error">{rErrors.dueDate}</span>}
+          </label>
+          <label>Discount (%) — optional
+            <input type="number" min="0" max="100" step="0.01" inputMode="decimal" value={rDiscount} onChange={(e) => setRDiscount(e.target.value)} placeholder="0" />
+            {rErrors.discountRate && <span className="error">{rErrors.discountRate}</span>}
+          </label>
+          <label>Tax (%) — optional
+            <input type="number" min="0" max="100" step="0.01" inputMode="decimal" value={rTax} onChange={(e) => setRTax(e.target.value)} placeholder="0" />
+            {rErrors.taxRate && <span className="error">{rErrors.taxRate}</span>}
+          </label>
+          {rErrors.form && <p className="error full" role="alert">{rErrors.form}</p>}
+          <div className="actions full">
+            <button className="primary" type="submit">Add recurring invoice</button>
+            {rNote && <span className="hint" role="status">{rNote}</span>}
+          </div>
+        </form>
+        {recurring.length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            {recurring.map((t) => (
+              <p key={t.id} style={{ margin: "8px 0" }}>
+                {t.description} — {byId.get(t.clientId)?.name ?? "Unknown client"} · {formatMoney(computeInvoiceTotal({ ...t, dueDate: t.nextDueDate, id: t.id, issuedDate: today, status: "unpaid" }))} · next due {t.nextDueDate}{" "}
+                <button onClick={() => stopRecurring(t.id)} type="button">Stop</button>
+              </p>
+            ))}
+            <div className="actions" style={{ marginTop: 12 }}>
+              <button disabled={generating} onClick={generateDue} type="button">{generating ? "Generating…" : "Generate due now"}</button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="toolbar">
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search description or client…" aria-label="Search invoices" />
