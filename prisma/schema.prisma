@@ -21,6 +21,7 @@ model User {
   passwordHash String
   clients      Client[]
   invoices     Invoice[]
+  recurringTemplates RecurringTemplate[]
   sessions     Session[]
 }
 
@@ -46,6 +47,7 @@ model Client {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   invoices  Invoice[]
+  recurringTemplates RecurringTemplate[]
 
   @@index([userId])
 }
@@ -61,6 +63,23 @@ model Invoice {
   id          String   @id @default(cuid())
   issuedDate  String
   status      String   @default("unpaid")
+  taxRate     Float    @default(0)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+
+  @@index([userId])
+  @@index([clientId])
+}
+
+model RecurringTemplate {
+  amount      Float
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId    String
+  createdAt   DateTime @default(now())
+  description String
+  discountRate Float    @default(0)
+  id          String   @id @default(cuid())
+  nextDueDate String
   taxRate     Float    @default(0)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
