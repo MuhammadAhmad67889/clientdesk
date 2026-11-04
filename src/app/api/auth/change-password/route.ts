@@ -9,10 +9,17 @@ import {
 } from "../../../../lib/auth";
 import { getSessionUser } from "../../../../lib/data";
 import { validatePasswordChange } from "../../../../lib/validation";
+import { clientIp, isRateLimited } from "../../../../lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ errors: { form: "You are not logged in." } }, { status: 401 });
+  if (isRateLimited(`change-password:${clientIp(req)}`, 10, 60_000)) {
+    return NextResponse.json(
+      { errors: { form: "Too many attempts. Try again in a minute." } },
+      { status: 429 },
+    );
+  }
 
   const body = (await req.json().catch(() => null)) as {
     confirmPassword?: unknown;
