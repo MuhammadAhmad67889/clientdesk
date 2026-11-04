@@ -1,5 +1,5 @@
-import { computeInvoiceTotal, computeRemainingBalance } from "./invoices";
-import type { Invoice, Payment } from "./types";
+import { computeAmountPaid, computeInvoiceTotal, computeRemainingBalance } from "./invoices";
+import type { Client, Invoice, Payment } from "./types";
 
 /** "2026-11" for a YYYY-MM-DD date. */
 export function monthKey(date: string): string {
@@ -126,7 +126,7 @@ export interface MonthRow {
 }
 
 /**
- * Last 6 calendar months ending at `today`'s month. Billed counts
+ * Last `count` calendar months ending at `today`'s month. Billed counts
  * invoices issued that month, paid counts payments dated that month,
  * and outstanding is what that month's invoices still owe right now.
  * A payment dated in a later month therefore lifts that month's paid
@@ -136,12 +136,13 @@ export function monthlyTable(
   invoices: Invoice[],
   payments: Payment[],
   today: string,
+  count = 6,
 ): MonthRow[] {
   const billed = sumBilledByMonth(invoices);
   const paid = sumPaidByMonth(payments);
   const keys: string[] = [];
   let key = monthKey(today);
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < count; i++) {
     keys.unshift(key);
     key = previousMonthKey(key);
   }
@@ -168,4 +169,97 @@ export function monthlyTable(
       paid: round(paid.get(k) ?? 0),
     };
   });
+}
+
+export type StatusBucket = "overdue" | "paid" | "partial" | "unpaid";
+
+export interface StatusSlice {
+  amount: number;
+  count: number;
+  key: StatusBucket;
+}
+
+/**
+ * Where the money stands, one bucket per invoice. The amount is the
+ * invoice total, so the four slices always add up to total billed.
+ * Overdue wins over partial: an invoice with some money in and a
+ * missed due date is overdue, not partial. Balances, not the status
+ * flag, decide — a payment can land without the flag catching up.
+ */
+export function statusBreakdown(
+  invoices: Invoice[],
+  payments: Payment[],
+  today: string,
+): StatusSlice[] {
+  const totals: Record<StatusBucket, { amount: number; count: number }> = {
+    overdue: { amount: 0, count: 0 },
+    paid: { amount: 0, count: 0 },
+    partial: { amount: 0, count: 0 },
+    unpaid: { amount: 0, count: 0 },
+  };
+  for (const invoice of invoices) {
+    const own = payments.filter((p) => p.invoiceId === invoice.id);
+    const remaining = computeRemainingBalance(invoice, own);
+    const total = computeInvoiceTotal(invoice);
+    let key: StatusBucket;
+    if (remaining === 0) key = "paid";
+    else if (invoice.dueDate < today) key = "overdue";
+    else if (computeAmountPaid(own) > 0) key = "partial";
+    else key = "unpaid";
+    totals[key].amount = Math.round((totals[key].amount + total) * 100) / 100;
+    totals[key].count += 1;
+  }
+  return (Object.keys(totals) as StatusBucket[]).map((key) => ({
+    amount: totals[key].amount,
+    count: totals[key].count,
+    key,
+  }));
+}
+
+export interface ClientRow {
+  billed: number;
+  id: string;
+  name: string;
+  outstanding: number;
+  paid: number;
+}
+
+/** Clients ranked by billed total, highest first. Archived clients stay in. */
+export function topClients(
+  invoices: Invoice[],
+  payments: Payment[],
+  clients: Client[],
+  limit = 5,
+): ClientRow[] {
+  const byId = new Map(clients.map((c) => [c.id, c.name]));
+  const rows = new Map<string, ClientRow>();
+  for (const invoice of invoices) {
+    const own = payments.filter((p) => p.invoiceId === invoice.id);
+    const row = rows.get(invoice.clientId) ?? {
+      billed: 0,
+      id: invoice.clientId,
+      name: byId.get(invoice.clientId) ?? "Unknown client",
+      outstanding: 0,
+      paid: 0,
+    };
+    row.billed = Math.round((row.billed + computeInvoiceTotal(invoice)) * 100) / 100;
+    row.paid = Math.round((row.paid + computeAmountPaid(own)) * 100) / 100;
+    row.outstanding = Math.round((row.outstanding + computeRemainingBalance(invoice, own)) * 100) / 100;
+    rows.set(invoice.clientId, row);
+  }
+  return [...rows.values()].sort((a, b) => b.billed - a.billed).slice(0, limit);
+}
+
+/**
+ * Share of billed money that has actually arrived, as a whole percent.
+ * Null when nothing has been billed yet — there is no rate to show,
+ * and 0% would wrongly imply money is missing.
+ */
+export function collectionRate(invoices: Invoice[], payments: Payment[]): number | null {
+  let billed = 0;
+  let paid = 0;
+  for (const invoice of invoices) billed += computeInvoiceTotal(invoice);
+  for (const payment of payments) paid += payment.amount;
+  if (billed === 0) return null;
+  return Math.round((paid / billed) * 100);
 }
