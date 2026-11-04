@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PublicFooter, PublicNav } from "./Public";
+import Reveal from "./Reveal";
 
 /** The logged-out home page. Everything it claims already exists in
  * the app — no AI features, no team seats, no billing promises, no
@@ -100,6 +101,7 @@ const faqs = [
 
 export default function LandingPage() {
   return (
+    <Reveal>
     <div className="public-wrap">
       <PublicNav />
       <main>
@@ -194,5 +196,6 @@ export default function LandingPage() {
       </main>
       <PublicFooter />
     </div>
+    </Reveal>
   );
 }

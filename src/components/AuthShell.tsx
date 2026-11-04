@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Reveal from "./Reveal";
 
 export default function AuthShell({
   children,
@@ -14,6 +15,7 @@ export default function AuthShell({
   title: string;
 }) {
   return (
+    <Reveal>
     <div className="auth-shell">
       <div className="auth-form-col">
         <div className="auth-box">
@@ -42,5 +44,6 @@ export default function AuthShell({
         </div>
       </aside>
     </div>
+    </Reveal>
   );
 }
