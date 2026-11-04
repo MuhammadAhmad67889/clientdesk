@@ -99,6 +99,17 @@ Settings billing section says so plainly. No real money moves until
 test-mode billing is switched on deliberately, and live payments are a
 separate decision after that.
 
+### Security and your data
+
+Every response carries security headers, and cross-site mutation
+requests to the API are rejected (the Stripe webhook is the one
+exception, verified by signature). Password changes are rate-limited,
+and `/api/health` reports whether the database answers, for uptime
+monitoring. In Settings you can export everything in your account as
+one JSON file — passwords, sessions and reset tokens are never
+included — delete your whole account by typing your own email address
+to confirm, and see a recent activity log of your own changes.
+
 ## How to run it
 
 You need Node 20+ and npm, and Postgres running locally.
@@ -134,11 +145,12 @@ client and invoice query in `src/lib/data.ts` filters by the logged-in
 user's id, so accounts can't see each other's data.
 
 Pages are server components that check the session first, and the forms
-call the `/api/*` routes, which check it again. Middleware only checks
-that a session cookie exists — it doesn't verify it. I did it that way
-because the Edge runtime can't run the crypto code, and the real check
-happens on the server anyway. It also fixed a loop I ran into early on,
-where an expired cookie kept bouncing between `/` and `/login`.
+call the `/api/*` routes, which check it again. Middleware rejects
+cross-site mutation requests to `/api/*` (a browser sending an Origin
+from another site), except the Stripe webhook, which Stripe's servers
+post to and which is verified by signature instead. Session cookies
+are verified on the server, not in middleware, because the Edge
+runtime can't run the crypto code.
 
 The maths and filtering stuff — totals, overdue dates, search, CSV,
 validation — is in `src/lib/` with tests next to it. There's one test
