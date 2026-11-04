@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, FileText, LayoutGrid, LogOut, Settings, User, Users } from "lucide-react";
+import { Banknote, BarChart3, ChevronDown, ChevronLeft, ChevronRight, FileText, LayoutGrid, LogOut, Menu, Settings, User, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import CommandPalette from "./CommandPalette";
 
@@ -10,6 +10,8 @@ const NAV = [
   { href: "/", label: "Overview" },
   { href: "/clients", label: "Clients" },
   { href: "/invoices", label: "Invoices" },
+  { href: "/payments", label: "Payments" },
+  { href: "/analytics", label: "Analytics" },
   { href: "/settings", label: "Settings" },
 ];
 
@@ -18,6 +20,8 @@ const NAV = [
 function Icon({ kind }: { kind: string }) {
   if (kind === "clients") return <Users size={18} />;
   if (kind === "invoices") return <FileText size={18} />;
+  if (kind === "payments") return <Banknote size={18} />;
+  if (kind === "analytics") return <BarChart3 size={18} />;
   if (kind === "settings") return <Settings size={18} />;
   return <LayoutGrid size={18} />;
 }
@@ -81,9 +85,22 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   const title =
     pathname === "/settings" ? "Settings"
+    : pathname === "/payments" ? "Payments"
+    : pathname === "/analytics" ? "Analytics"
     : pathname.startsWith("/clients") ? "Clients"
     : pathname.startsWith("/invoices") ? "Invoices"
     : "Overview";
+
+  // The phone bar: the four sections people open most, plus a menu
+  // button for everything else (the sidebar drawer). It only renders
+  // on narrow screens; desktop keeps the sidebar.
+  const bottomNav = [
+    { href: "/", kind: "overview", label: "Overview" },
+    { href: "/clients", kind: "clients", label: "Clients" },
+    { href: "/invoices", kind: "invoices", label: "Invoices" },
+    { href: "/payments", kind: "payments", label: "Payments" },
+    { href: "/settings", kind: "settings", label: "Settings" },
+  ];
 
   return (
     <div className="shell">
@@ -106,7 +123,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               onClick={() => setMobileOpen(false)}
             >
               <span className="nav-icon">
-                <Icon kind={item.href === "/clients" ? "clients" : item.href === "/invoices" ? "invoices" : item.href === "/settings" ? "settings" : "overview"} />
+                <Icon kind={item.href === "/clients" ? "clients" : item.href === "/invoices" ? "invoices" : item.href === "/payments" ? "payments" : item.href === "/analytics" ? "analytics" : item.href === "/settings" ? "settings" : "overview"} />
               </span>
               <span className="nav-label">{item.label}</span>
             </Link>
@@ -177,6 +194,23 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </header>
         <main className="content">{children}</main>
       </div>
+      <nav aria-label="Quick navigation" className="bottom-nav">
+        {bottomNav.map((item) => (
+          <Link
+            aria-current={pathname === item.href ? "page" : undefined}
+            className={`bottom-nav-item${pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)) ? " active" : ""}`}
+            href={item.href}
+            key={item.href}
+          >
+            <Icon kind={item.kind} />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+        <button aria-label="Open navigation menu" className="bottom-nav-item" onClick={() => setMobileOpen(true)} type="button">
+          <Menu size={18} />
+          <span>Menu</span>
+        </button>
+      </nav>
       <CommandPalette onClose={() => setPaletteOpen(false)} open={paletteOpen} />
     </div>
   );

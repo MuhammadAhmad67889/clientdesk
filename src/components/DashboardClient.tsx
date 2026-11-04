@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
+import DeltaChip from "./DeltaChip";
 import OnboardingCard from "./OnboardingCard";
 import Reveal from "./Reveal";
 import { ConfirmDialog } from "./Dialog";
@@ -11,6 +12,7 @@ import { computeClientTotals, computeInvoiceTotal, computeRemainingBalance, form
 import { computeMonthlyOverview } from "../lib/monthly";
 import { buildActivity } from "../lib/activity";
 import { rankClientsByOutstanding, summarizeMonth } from "../lib/drafts";
+import { deltaVsPrevious, monthKey, previousMonthKey, sumPaidByMonth } from "../lib/analytics";
 import type { Client, Invoice, Payment } from "../lib/types";
 
 /** First day included by a "last N days" filter, from a YYYY-MM-DD date. */
@@ -82,6 +84,24 @@ export default function DashboardClient({
   const recentClients = [...rangeClients]
     .filter((c) => !c.archived)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 5);
+  // Paid this month vs last month, from real payment rows only, so
+  // the delta always matches the Total paid tile above it.
+  const thisMonthKey = monthKey(today);
+  const paidByMonth = sumPaidByMonth(payments);
+  const paidDelta = deltaVsPrevious(
+    paidByMonth.get(thisMonthKey) ?? 0,
+    paidByMonth.get(previousMonthKey(thisMonthKey)) ?? 0,
+  );
+  // Pending invoices: unpaid balances, soonest due first. Overdue
+  // invoices appear here too — this list is about money owed, not
+  // just what is late.
+  const pendingCount = invoices.filter(
+    (inv) => (balanceByInvoice.get(inv.id) ?? computeInvoiceTotal(inv)) > 0,
+  ).length;
+  const pending = invoices
+    .filter((inv) => (balanceByInvoice.get(inv.id) ?? computeInvoiceTotal(inv)) > 0)
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
     .slice(0, 5);
   const activity = buildActivity(clients, invoices, payments);
   // Revenue trend: two SVG lines from the real monthly totals —
@@ -180,7 +200,10 @@ export default function DashboardClient({
 
       <div className="stats">
         <div className="stat" data-reveal><span>Total outstanding</span><strong>{formatMoney(totals.totalOutstanding)}</strong><small>{unpaidCount} unpaid invoice{unpaidCount === 1 ? "" : "s"}</small></div>
-        <div className="stat" data-reveal><span>Total paid</span><strong>{formatMoney(totals.totalPaid)}</strong></div>
+        <div className="stat" data-reveal>
+          <span>Total paid</span><strong>{formatMoney(totals.totalPaid)}</strong>
+          <DeltaChip delta={paidDelta} />
+        </div>
         <div className="stat" data-reveal><span>Overdue</span><strong>{totals.overdueCount} · {formatMoney(totals.overdueAmount)}</strong><small>Unpaid and past due</small></div>
         <div className="stat" data-reveal><span>Clients</span><strong>{clients.length}</strong></div>
         <div className="stat" data-reveal><span>Invoices</span><strong>{invoices.length}</strong></div>
@@ -254,6 +277,28 @@ export default function DashboardClient({
             </ul>
           )}
         </div>
+      </div>
+
+      <div className="card" data-reveal>
+        <div className="card-head">
+          <h2>Pending invoices ({pendingCount})</h2>
+          <Link href="/invoices">View all <ArrowRight aria-hidden="true" className="icon-inline" size={14} /></Link>
+        </div>
+        {pending.length === 0 ? (
+          <p className="hint">Nothing pending. Every invoice is paid in full.</p>
+        ) : (
+          <ul className="attention-list">
+            {pending.map((inv) => (
+              <li key={inv.id}>
+                <span>
+                  <Link href={`/invoices/${inv.id}`}>{inv.description}</Link> — {byId.get(inv.clientId)?.name ?? "Unknown client"}
+                </span>
+                <span><strong>{formatMoney(balanceByInvoice.get(inv.id) ?? computeInvoiceTotal(inv))}</strong> · due {inv.dueDate}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="hint" style={{ marginBottom: 0 }}>Unpaid balances, soonest due first.</p>
       </div>
 
       <div className="two-col">

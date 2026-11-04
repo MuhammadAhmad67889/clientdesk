@@ -379,7 +379,7 @@ export default function InvoicesClient({
       ) : (
         <div className="card table-wrap" data-reveal>
           <table>
-            <thead><tr><th>Number</th><th>Client</th><th>Description</th><th>Amount</th><th>Total</th><th>Status</th><th>Issued</th><th>Due</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Number</th><th>Client</th><th>Description</th><th>Items</th><th>Amount</th><th>Total</th><th>Status</th><th>Issued</th><th>Due</th><th>Actions</th></tr></thead>
             <tbody>
               {paged.map((inv) => {
                 const overdue = isOverdue(inv, today);
@@ -388,6 +388,7 @@ export default function InvoicesClient({
                     <td data-label="Number">{formatInvoiceNumber(inv.number)}</td>
                     <td data-label="Client">{byId.get(inv.clientId)?.name ?? "Unknown client"}</td>
                     <td data-label="Description">{inv.description}</td>
+                    <td data-label="Items">{inv.items && inv.items.length > 0 ? `${inv.items.length} item${inv.items.length === 1 ? "" : "s"}` : "—"}</td>
                     <td data-label="Amount">{formatMoney(inv.amount)}</td>
                     <td data-label="Total">{formatMoney(computeInvoiceTotal(inv))}</td>
                     <td data-label="Status">
