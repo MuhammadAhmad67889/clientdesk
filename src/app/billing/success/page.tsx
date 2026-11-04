@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Reveal from "../../../components/Reveal";
 
 export const metadata: Metadata = {
   description: "ClientDesk checkout complete.",
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
 
 export default function BillingSuccessPage() {
   return (
+    <Reveal>
     <div className="card" style={{ maxWidth: 560, margin: "48px auto" }}>
       <h1>Checkout complete</h1>
       <p>
@@ -21,5 +23,6 @@ export default function BillingSuccessPage() {
         <Link className="btn" href="/">Back to Overview</Link>
       </div>
     </div>
+    </Reveal>
   );
 }
