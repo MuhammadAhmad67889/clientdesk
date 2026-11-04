@@ -263,6 +263,41 @@ h3 { font-size: 0.95rem; margin: 0 0 4px; }
 .stat span { display: block; color: var(--text-2); font-size: 0.84rem; font-weight: 600; }
 .stat strong { display: block; font-size: 1.45rem; letter-spacing: -0.01em; }
 .stat small { display: block; color: var(--text-2); font-size: 0.82rem; margin-top: 2px; }
+/* Delta chips on the stat cards: green when up, red when down,
+ * muted for flat, new, or empty months. */
+.stat small.delta-up { color: var(--success); font-weight: 600; }
+.stat small.delta-down { color: var(--error); font-weight: 600; }
+/* The phone bar only appears on narrow screens; desktop keeps the sidebar. */
+.bottom-nav { display: none; }
+@media (max-width: 760px) {
+  .content { padding-bottom: 88px; }
+  .bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    background: var(--topbar-bg);
+    border-top: 1px solid var(--border);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: var(--text-2);
+    font-size: 0.7rem;
+    padding: 6px 2px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .bottom-nav-item.active { color: var(--primary); font-weight: 600; }
+}
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
 th { font-size: 0.8rem; color: var(--text-2); font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; }
@@ -473,7 +508,7 @@ input::placeholder, textarea::placeholder { color: var(--text-2); opacity: 0.8; 
   tbody tr:hover { background: transparent; }
 }
 @media print {
-  .sidebar, .topbar, .toolbar, .actions, form, .no-print, .page-actions { display: none !important; }
+  .sidebar, .topbar, .toolbar, .actions, form, .no-print, .page-actions, .bottom-nav { display: none !important; }
   body { background: #fff; }
   .card { border: none; padding: 0; box-shadow: none; }
 }
