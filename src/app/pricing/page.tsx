@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicFooter, PublicNav } from "../../components/Public";
+import Reveal from "../../components/Reveal";
 
 export const metadata: Metadata = {
   description: "ClientDesk pricing: free for up to 10 clients and 30 invoices, Pro at $9/month when billing opens.",
@@ -33,6 +34,7 @@ const tiers = [
 
 export default function PricingPage() {
   return (
+    <Reveal>
     <div className="public-wrap">
       <PublicNav />
       <main>
@@ -67,5 +69,6 @@ export default function PricingPage() {
       </main>
       <PublicFooter />
     </div>
+    </Reveal>
   );
 }
