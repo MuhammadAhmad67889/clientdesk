@@ -1,4 +1,5 @@
 import Link from "next/link";
+import InvoiceCalculator from "./InvoiceCalculator";
 import { PublicFooter, PublicNav } from "./Public";
 import Reveal from "./Reveal";
 
@@ -14,8 +15,8 @@ const features = [
     title: "Clients in one place",
   },
   {
-    detail: "Discount first, then tax on what's left — the breakdown is shown on the invoice, the PDF, and the CSV.",
-    text: "Invoice numbers, discount and tax rates, due dates, and totals that add up the same way everywhere.",
+    detail: "Line items or a single amount, invoice numbers, discount and tax rates, due dates — the breakdown shows on the invoice, the PDF, and the CSV.",
+    text: "Invoice numbers, line items, discount and tax rates, due dates, and totals that add up the same way everywhere.",
     title: "Invoices that add up",
   },
   {
@@ -24,8 +25,8 @@ const features = [
     title: "Payments, not just totals",
   },
   {
-    detail: "One-page PDF per invoice, generated on the server. CSV exports for clients and invoices, including paid and balance columns.",
-    text: "Download an invoice as a PDF, or take your data with you as CSV.",
+    detail: "One-page PDF per invoice, generated on the server. CSV exports for clients and invoices, including paid and balance columns — and CSV import for clients.",
+    text: "Download an invoice as a PDF, take your data as CSV, or bring a client list in.",
     title: "PDFs and CSVs",
   },
   {
@@ -37,6 +38,26 @@ const features = [
     detail: "Outstanding, paid, overdue, last six months — plus this month's totals and largest outstanding balances. All computed from your real rows.",
     text: "A dashboard that tells the truth about what you are owed.",
     title: "A dashboard that tells the truth",
+  },
+  {
+    detail: "Billed vs paid bars, an invoice-status donut, top clients, and a collection rate — with a 6 or 12 month range. Totals only, no forecasts.",
+    text: "Charts and tables from your real invoices and payments.",
+    title: "Analytics that explain themselves",
+  },
+  {
+    detail: "Money received and balances still owed, All, Completed and Pending tabs, and a record-a-payment form on the page itself.",
+    text: "Every payment in one place, with the invoice and client beside it.",
+    title: "A dedicated payments page",
+  },
+  {
+    detail: "Paste free text and get an editable invoice draft — amount, due date, and client pulled out by rules, never invented. Reminder drafts use your real figures.",
+    text: "Drafts from plain text, confirmed by you before anything is saved.",
+    title: "Drafts from plain text",
+  },
+  {
+    detail: "Ctrl/Cmd+K searches real clients and invoices. Sort the lists, filter by due date or archive, and page through them.",
+    text: "Find anything fast, on desktop and on your phone.",
+    title: "Find anything fast",
   },
 ];
 
@@ -124,7 +145,15 @@ export default function LandingPage() {
           </figure>
         </section>
 
-        <section>
+        <nav aria-label="On this page" className="section-nav">
+          <a href="#features">Features</a>
+          <a href="#how">How it works</a>
+          <a href="#calculator">Try the math</a>
+          <a href="#plans">Plans</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+
+        <section id="features">
           <h2>Everything you need to manage your freelance business</h2>
           <div className="feature-grid">
             {features.map((f) => (
@@ -137,7 +166,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section>
+        <section id="how">
           <h2>How it works</h2>
           <ol className="steps">
             {steps.map((s) => (
@@ -146,7 +175,17 @@ export default function LandingPage() {
           </ol>
         </section>
 
-        <section>
+        <section id="calculator">
+          <h2>Try the math</h2>
+          <p>
+            Change the numbers and watch the total follow. This is the
+            app&apos;s real invoice math — try the example it ships with:
+            $200 at 10% off and 10% tax comes to $198.
+          </p>
+          <InvoiceCalculator />
+        </section>
+
+        <section id="plans">
           <h2>Plans that fit your freelance journey</h2>
           <div className="price-grid">
             {tiers.map((tier) => (
@@ -170,7 +209,7 @@ export default function LandingPage() {
           </p>
         </section>
 
-        <section>
+        <section id="faq">
           <h2>Frequently asked questions</h2>
           <div className="faq">
             {faqs.map((f) => (

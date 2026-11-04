@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Reveal from "./Reveal";
+import ThreeScene from "./ThreeScene";
 
 export default function AuthShell({
   children,
@@ -30,6 +31,7 @@ export default function AuthShell({
         </div>
       </div>
       <aside className="auth-preview" aria-hidden="true">
+        <ThreeScene />
         <h2>Clients and invoices, without the spreadsheet chaos.</h2>
         <p>ClientDesk is a freelance client and invoice manager built for people who bill real work.</p>
         <ul>
