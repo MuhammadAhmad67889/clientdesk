@@ -506,7 +506,7 @@ export async function seedDemoForUser(userId: string, db: PrismaClient = getPris
   for (const [index, inv] of seed.invoices.entries()) {
     const clientId = idMap.get(inv.clientId);
     if (!clientId) continue;
-    await db.invoice.create({
+    const created = await db.invoice.create({
       data: {
         amount: inv.amount,
         clientId,
@@ -520,6 +520,21 @@ export async function seedDemoForUser(userId: string, db: PrismaClient = getPris
         userId,
       },
     });
+    // A seeded invoice marked paid must have the payment row to back
+    // it up: the dashboard totals count real payments, so without this
+    // row a fresh account would show $0 paid and the paid invoices
+    // counted as outstanding. The payment is dated at issue, so the
+    // monthly trend (which groups by issued date) is unchanged.
+    if (inv.status === "paid") {
+      await db.payment.create({
+        data: {
+          amount: computeInvoiceTotal(inv),
+          invoiceId: created.id,
+          paidAt: inv.issuedDate,
+          userId,
+        },
+      });
+    }
   }
 }
 
