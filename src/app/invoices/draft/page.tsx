@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import DraftInvoicePage from "../../../components/DraftInvoicePage";
+import Reveal from "../../../components/Reveal";
 import { getSessionUser, listClients } from "../../../lib/data";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,9 @@ export default async function DraftPage() {
         <h1>Draft invoice from text</h1>
         <p className="lead">Paste the details, check the draft, then create the invoice. Nothing is saved until you say so.</p>
       </div>
-      <DraftInvoicePage clients={clients} />
+      <Reveal>
+        <DraftInvoicePage clients={clients} />
+      </Reveal>
     </div>
   );
 }
