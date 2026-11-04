@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
 import { hashEquals, hashToken, SESSION_COOKIE, verifySessionCookie } from "./auth";
+import { recordAudit } from "./audit";
 import { getPrisma } from "./prisma";
 import { applyInvoiceEdit, applyPaymentDeletion, buildDuplicateInput, computeAmountPaid, computeInvoiceTotal, computeItemsSubtotal, computeRemainingBalance, seedData, todayIso } from "./invoices";
 import type { InvoiceItemInput } from "./invoices";
@@ -206,9 +207,11 @@ export async function createClient(
   input: { company?: string; email?: string; name: string; notes?: string; phone?: string },
   db: PrismaClient = getPrisma(),
 ): Promise<Client> {
-  return toClient(
+  const created = toClient(
     await db.client.create({ data: { ...input, userId } }),
   );
+  await recordAudit(userId, "client.created", created.name, db);
+  return created;
 }
 
 export async function updateClient(
@@ -221,7 +224,7 @@ export async function updateClient(
   if (!existing) return null;
   // Undefined means "cleared in the form" here, so store null instead of
   // leaving the old value in place (Prisma skips undefined fields).
-  return toClient(await db.client.update({
+  const updated = toClient(await db.client.update({
     data: {
       company: input.company ?? null,
       email: input.email ?? null,
@@ -231,6 +234,8 @@ export async function updateClient(
     },
     where: { id },
   }));
+  await recordAudit(userId, "client.updated", updated.name, db);
+  return updated;
 }
 
 export async function deleteClient(userId: string, id: string, db: PrismaClient = getPrisma()): Promise<boolean> {
@@ -242,6 +247,7 @@ export async function deleteClient(userId: string, id: string, db: PrismaClient 
     db.invoice.deleteMany({ where: { clientId: id, userId } }),
     db.client.delete({ where: { id } }),
   ]);
+  await recordAudit(userId, "client.deleted", existing.name, db);
   return true;
 }
 
@@ -253,7 +259,9 @@ export async function setClientArchived(
 ): Promise<Client | null> {
   const existing = await db.client.findFirst({ where: { id, userId } });
   if (!existing) return null;
-  return toClient(await db.client.update({ data: { archived }, where: { id } }));
+  const updated = toClient(await db.client.update({ data: { archived }, where: { id } }));
+  await recordAudit(userId, archived ? "client.archived" : "client.unarchived", updated.name, db);
+  return updated;
 }
 
 export async function createInvoice(
@@ -281,7 +289,9 @@ export async function createInvoice(
     },
     include: { items: true },
   });
-  return toInvoice(created);
+  const invoice = toInvoice(created);
+  await recordAudit(userId, "invoice.created", invoice.description, db);
+  return invoice;
 }
 
 export async function setInvoicePaid(
@@ -292,9 +302,11 @@ export async function setInvoicePaid(
 ): Promise<Invoice | null> {
   const existing = await db.invoice.findFirst({ where: { id, userId } });
   if (!existing) return null;
-  return toInvoice(
+  const updated = toInvoice(
     await db.invoice.update({ data: { status: paid ? "paid" : "unpaid" }, where: { id } }),
   );
+  await recordAudit(userId, paid ? "invoice.paid" : "invoice.unpaid", updated.description, db);
+  return updated;
 }
 
 /**
@@ -326,13 +338,17 @@ export async function updateInvoice(
     ]);
   }
   const refreshed = await db.invoice.findUnique({ include: { items: true }, where: { id } });
-  return refreshed ? toInvoice(refreshed) : null;
+  if (!refreshed) return null;
+  const refreshedInvoice = toInvoice(refreshed);
+  await recordAudit(userId, "invoice.updated", refreshedInvoice.description, db);
+  return refreshedInvoice;
 }
 
 export async function deleteInvoice(userId: string, id: string, db: PrismaClient = getPrisma()): Promise<boolean> {
   const existing = await db.invoice.findFirst({ where: { id, userId } });
   if (!existing) return false;
   await db.invoice.delete({ where: { id } });
+  await recordAudit(userId, "invoice.deleted", existing.description, db);
   return true;
 }
 
@@ -363,13 +379,16 @@ export async function createRecurringTemplate(
 ): Promise<RecurringTemplate | null> {
   const client = await db.client.findFirst({ where: { id: input.clientId, userId } });
   if (!client) return null;
-  return toRecurring(await db.recurringTemplate.create({ data: { ...input, userId } }));
+  const created = toRecurring(await db.recurringTemplate.create({ data: { ...input, userId } }));
+  await recordAudit(userId, "recurring.created", created.description, db);
+  return created;
 }
 
 export async function deleteRecurringTemplate(userId: string, id: string, db: PrismaClient = getPrisma()): Promise<boolean> {
   const existing = await db.recurringTemplate.findFirst({ where: { id, userId } });
   if (!existing) return false;
   await db.recurringTemplate.delete({ where: { id } });
+  await recordAudit(userId, "recurring.deleted", existing.description, db);
   return true;
 }
 
@@ -404,6 +423,7 @@ export async function generateDueRecurring(
       data: { nextDueDate: addMonths(t.nextDueDate, 1) },
       where: { id: t.id },
     });
+    await recordAudit(userId, "invoice.created", t.description, db);
     created.push(toInvoice(invoice));
   }
   return created;
@@ -459,7 +479,9 @@ export async function recordPayment(
   if (newPaid >= computeInvoiceTotal(inv) - 0.001) {
     await db.invoice.update({ data: { status: "paid" }, where: { id: invoiceId } });
   }
-  return toPayment(created);
+  const payment = toPayment(created);
+  await recordAudit(userId, "payment.recorded", inv.description, db);
+  return payment;
 }
 
 /**
@@ -484,6 +506,7 @@ export async function deletePayment(
   if (updated.status !== invoice.status) {
     await db.invoice.update({ data: { status: updated.status }, where: { id: invoiceId } });
   }
+  await recordAudit(userId, "payment.deleted", invoice.description, db);
   return true;
 }
 
