@@ -1,27 +1,39 @@
 "use client";
 
+import { useState } from "react";
 import DeltaChip from "./DeltaChip";
+import MonthlyBars from "./MonthlyBars";
 import Reveal from "./Reveal";
+import StatusDonut from "./StatusDonut";
+import TopClients from "./TopClients";
 import { formatMoney, todayIso } from "../lib/invoices";
 import {
+  collectionRate,
   currentQuarter,
   deltaVsPrevious,
   monthKey,
   monthlyTable,
   periodTotals,
   previousMonthKey,
+  statusBreakdown,
   sumBilledByMonth,
   sumPaidByMonth,
+  topClients,
 } from "../lib/analytics";
-import type { Invoice, Payment } from "../lib/types";
+import type { Client, Invoice, Payment } from "../lib/types";
 
 export default function AnalyticsClient({
+  initialClients,
   initialInvoices,
   initialPayments,
 }: {
+  initialClients: Client[];
   initialInvoices: Invoice[];
   initialPayments: Payment[];
 }) {
+  // How many months the chart and table cover; the stat cards above
+  // stay "this month" whatever the range, so the two never mix.
+  const [range, setRange] = useState(6);
   const today = todayIso();
   const thisMonthKey = monthKey(today);
   const lastMonthKey = previousMonthKey(thisMonthKey);
@@ -38,7 +50,10 @@ export default function AnalyticsClient({
   const issuedThisMonth = initialInvoices.filter((inv) => monthKey(inv.issuedDate) === thisMonthKey);
   const quarter = currentQuarter(today);
   const quarterTotals = periodTotals(initialInvoices, initialPayments, quarter.start, quarter.end);
-  const months = monthlyTable(initialInvoices, initialPayments, today);
+  const months = monthlyTable(initialInvoices, initialPayments, today, range);
+  const rate = collectionRate(initialInvoices, initialPayments);
+  const statuses = statusBreakdown(initialInvoices, initialPayments, today);
+  const clients = topClients(initialInvoices, initialPayments, initialClients);
 
   return (
     <Reveal>
@@ -60,6 +75,37 @@ export default function AnalyticsClient({
           <span>Issued this month</span><strong>{issuedThisMonth.length}</strong>
           <small>{issuedThisMonth.length === 1 ? "invoice" : "invoices"}</small>
         </div>
+        <div className="stat" data-reveal>
+          <span>Collection rate</span><strong>{rate === null ? "—" : `${rate}%`}</strong>
+          <small>{rate === null ? "Nothing billed yet" : "Paid share of all billed money"}</small>
+        </div>
+      </div>
+
+      <div className="card" data-reveal>
+        <div className="card-head">
+          <h2>Billed vs paid</h2>
+          <div style={{ display: "flex", gap: 6 }} role="group" aria-label="Months shown">
+            <button className={range === 6 ? "btn btn-primary" : "btn"} onClick={() => setRange(6)} type="button">6 months</button>
+            <button className={range === 12 ? "btn btn-primary" : "btn"} onClick={() => setRange(12)} type="button">12 months</button>
+          </div>
+        </div>
+        <MonthlyBars months={months} />
+      </div>
+
+      <div className="card" data-reveal>
+        <div className="card-head">
+          <h2>Invoice status</h2>
+          <p>By invoice total, so the slices add up to total billed</p>
+        </div>
+        <StatusDonut slices={statuses} />
+      </div>
+
+      <div className="card" data-reveal>
+        <div className="card-head">
+          <h2>Top clients</h2>
+          <p>By billed total, highest first</p>
+        </div>
+        <TopClients rows={clients} />
       </div>
 
       <div className="card" data-reveal>
@@ -77,7 +123,7 @@ export default function AnalyticsClient({
 
       <div className="card table-wrap" data-reveal>
         <div className="card-head">
-          <h2>Last 6 months</h2>
+          <h2>Last {range} months</h2>
           <p>Billed by issued month · paid by payment month</p>
         </div>
         <table>
