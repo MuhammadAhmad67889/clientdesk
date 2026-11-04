@@ -32,6 +32,21 @@ model User {
   recurringTemplates RecurringTemplate[]
   resetTokens  PasswordResetToken[]
   sessions     Session[]
+  auditEntries AuditLog[]
+}
+
+/** One durable line per meaningful change a user makes, so an account
+ * can answer "what changed, and when" without digging through rows.
+ * Seeded demo data is deliberately not audited — it is not user work. */
+model AuditLog {
+  action    String
+  createdAt DateTime @default(now())
+  detail    String?
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@index([userId])
 }
 
 model PasswordResetToken {
