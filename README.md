@@ -160,17 +160,6 @@ messages, or reports pages, and no file attachments — I didn't invent
 those, so the sidebar only lists Overview, Clients, Invoices, and
 Settings.
 
-## Design (October 2026 redesign)
-
-A premium, restrained redesign on the same code: Inter type, an 8px
-spacing system, navy/blue tokens with light and dark modes (saved per
-browser), a collapsible sidebar, a Ctrl/Cmd+K command palette that
-searches real clients and invoices, sorted client/invoice lists, a
-dashboard "needs your attention" section for overdue invoices, and
-card layouts on mobile instead of sideways-scrolling tables. No
-features were removed and no backend or schema changes were made;
-every number on the dashboard still comes from your real data.
-
 ## Screenshots
 
 These are real screenshots of the deployed app, taken 4 November 2026
