@@ -163,14 +163,14 @@ file are dummy values just for the tests.
 
 ## What's still rough
 
-No password reset by email yet, and no email verification — that
-needs an email service, which I haven't added. If you're signed in,
-you can change your password from Settings instead, and it signs you
-out on your other devices. Billing is built but not switched on (see
-Plans and billing above). There are no projects, tasks,
-messages, or reports pages, and no file attachments — I didn't invent
-those, so the sidebar only lists Overview, Clients, Invoices, and
-Settings.
+No email verification yet, and password reset by email is built but
+not switched on — it needs an email service, which I haven't
+configured. If you're signed in, you can change your password from
+Settings instead, and it signs you out on your other devices. Billing
+is built but not switched on (see Plans and billing above). There are
+no projects, tasks, messages, or reports pages, and no file
+attachments — I didn't invent those, so the sidebar lists Overview,
+Clients, Invoices, Payments, Analytics, and Settings.
 
 ## Screenshots
 
