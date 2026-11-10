@@ -208,10 +208,12 @@ a:hover { text-decoration: underline; }
   .item-row { grid-template-columns: 1fr 1fr; }
   .item-row label:first-child { grid-column: 1 / -1; }
 }
-/* Very narrow phones: the topbar keeps menu, title, theme, and
- * profile — the search hint and its shortcut go away, and a long
- * title truncates instead of pushing the profile button off-screen. */
-@media (max-width: 480px) {
+/* Phones (the same breakpoint as the bottom nav): the topbar keeps
+ * menu, title, theme, and profile — the search hint and its shortcut
+ * go away, and a long title truncates instead of pushing the profile
+ * button off-screen. The hint used to hide only under 480px, which
+ * left the title cut to "Settin..." on wider phones. */
+@media (max-width: 760px) {
   .cmd-hint { display: none; }
   .topbar-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
