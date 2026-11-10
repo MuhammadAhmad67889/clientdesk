@@ -1,7 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import { seedDemoForUser } from "./data";
-import { computeClientTotals, seedData } from "./invoices";
+import { computeClientTotals, seedData, todayIso } from "./invoices";
 
 /**
  * seedDemoForUser against a stub database, so this runs without
@@ -46,7 +46,9 @@ describe("seedDemoForUser", () => {
     expect(payments.length).toBe(2);
     expect(payments.map((p) => p.amount).sort((a, b) => (a as number) - (b as number))).toEqual([300, 600]);
     expect(payments.map((p) => p.userId)).toEqual(["user-1", "user-1"]);
-    const paidSeeds = seedData("2026-11-04").invoices.filter(
+    // The seed builds its dates from today, so the expected seeds must
+    // use today too — a frozen date here goes stale as days pass.
+    const paidSeeds = seedData(todayIso()).invoices.filter(
       (i) => i.status === "paid",
     );
     for (const [index, payment] of payments.entries()) {
