@@ -208,15 +208,6 @@ a:hover { text-decoration: underline; }
   .item-row { grid-template-columns: 1fr 1fr; }
   .item-row label:first-child { grid-column: 1 / -1; }
 }
-/* Phones (the same breakpoint as the bottom nav): the topbar keeps
- * menu, title, theme, and profile — the search hint and its shortcut
- * go away, and a long title truncates instead of pushing the profile
- * button off-screen. The hint used to hide only under 480px, which
- * left the title cut to "Settin..." on wider phones. */
-@media (max-width: 760px) {
-  .cmd-hint { display: none; }
-  .topbar-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-}
 .cmd-hint {
   display: flex;
   align-items: center;
@@ -238,6 +229,18 @@ a:hover { text-decoration: underline; }
   border-radius: 5px;
   padding: 1px 5px;
   background: var(--surface-2);
+}
+/* Phones (the same breakpoint as the bottom nav): the topbar keeps
+ * menu, title, theme, and profile — the search hint and its shortcut
+ * go away, and a long title truncates instead of pushing the profile
+ * button off-screen. The hint used to hide only under 480px, which
+ * left the title cut to "Settin..." on wider phones.
+ * This block MUST stay after the .cmd-hint rules above: same
+ * specificity, so the later rule wins — before them, the base
+ * display:flex would override the hiding rule at every width. */
+@media (max-width: 760px) {
+  .cmd-hint { display: none; }
+  .topbar-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 .content { max-width: 1120px; width: 100%; margin: 0 auto; padding: 24px 24px 48px; }
 
