@@ -127,14 +127,14 @@ export default function LandingPage() {
       <PublicNav />
       <main>
         <section className="public-hero">
-          <h1>Freelance clients and invoices, without the spreadsheet.</h1>
+          <h1>Freelance clients and invoices, <span className="gradient-text">without the spreadsheet.</span></h1>
           <p className="lead">
             ClientDesk keeps your clients, invoices, and payments in one
             private account — so you always know who owes you, what is
             overdue, and what you have actually been paid.
           </p>
           <div className="page-actions">
-            <Link className="btn btn-primary" href="/signup">Create a free account</Link>
+            <Link className="btn btn-primary btn-gradient" href="/signup">Create a free account</Link>
             <Link className="btn" href="/pricing">See pricing</Link>
           </div>
           <p className="hint">Free to start. New accounts include demo data you can explore or delete.</p>
@@ -198,7 +198,7 @@ export default function LandingPage() {
                     <li key={f}>{f}</li>
                   ))}
                 </ul>
-                <Link className="btn btn-primary" href="/signup">Start free</Link>
+                <Link className="btn btn-primary btn-gradient" href="/signup">Start free</Link>
               </article>
             ))}
           </div>
