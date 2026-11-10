@@ -83,14 +83,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     return <main>{children}</main>;
   }
 
-  const title =
-    pathname === "/settings" ? "Settings"
-    : pathname === "/payments" ? "Payments"
-    : pathname === "/analytics" ? "Analytics"
-    : pathname.startsWith("/clients") ? "Clients"
-    : pathname.startsWith("/invoices") ? "Invoices"
-    : "Overview";
-
   // The phone bar: the four sections people open most, plus a menu
   // button for everything else (the sidebar drawer). It only renders
   // on narrow screens; desktop keeps the sidebar.
@@ -146,7 +138,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           >
             ☰
           </button>
-          <h2 className="topbar-title">{title}</h2>
           <div className="topbar-spacer" />
           {email && (
             <button className="cmd-hint" onClick={() => setPaletteOpen(true)} type="button">
@@ -180,9 +171,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                   <button aria-label="Close account menu" className="menu-backdrop" onClick={() => setProfileOpen(false)} type="button" />
                   <div className="profile-dropdown" role="menu">
                     <span className="profile-email">{email}</span>
-                    <Link href="/settings" onClick={() => setProfileOpen(false)} role="menuitem">
-                      <Settings aria-hidden="true" className="icon-inline" size={14} /> Settings
-                    </Link>
                     <button onClick={logout} role="menuitem" type="button">
                       <LogOut aria-hidden="true" className="icon-inline" size={14} /> Log out
                     </button>
