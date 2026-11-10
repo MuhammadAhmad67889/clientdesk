@@ -4,8 +4,8 @@
  * nothing here is reset by the framework. */
 @tailwind utilities;
 
-/* Design tokens — ClientDesk 2.0. Inter everywhere, one blue, one
- * gradient accent reserved for hero moments. 8px spacing scale. */
+/* Design tokens — ClientDesk 2.0. Inter everywhere, one emerald,
+ * one gradient accent reserved for hero moments. 8px spacing scale. */
 :root {
   color-scheme: light;
   --bg: #f6f7f9;
@@ -14,9 +14,9 @@
   --text: #0f172a;
   --text-2: #64748b;
   --border: #e6e8ec;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-soft: #eff6ff;
+  --primary: #059669;
+  --primary-hover: #047857;
+  --primary-soft: #ecfdf5;
   --success: #16a34a;
   --success-soft: #dcfce7;
   --warning: #d97706;
@@ -27,7 +27,7 @@
   --topbar-bg: rgba(255, 255, 255, 0.85);
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 8px 24px rgba(16, 24, 40, 0.06);
   --shadow-lg: 0 2px 4px rgba(16, 24, 40, 0.06), 0 16px 40px rgba(16, 24, 40, 0.12);
-  --gradient: linear-gradient(135deg, #2563eb, #7c3aed);
+  --gradient: linear-gradient(135deg, #059669, #0d9488);
   --radius: 20px;
   --radius-sm: 12px;
 }
@@ -39,9 +39,9 @@
   --text: #f1f5f9;
   --text-2: #94a3b8;
   --border: #1f2a3d;
-  --primary: #60a5fa;
-  --primary-hover: #93c5fd;
-  --primary-soft: #1e3a5f;
+  --primary: #34d399;
+  --primary-hover: #6ee7b7;
+  --primary-soft: #064e3b;
   --success: #4ade80;
   --success-soft: #14532d;
   --warning: #fbbf24;
@@ -116,7 +116,7 @@ a:hover { text-decoration: underline; }
   place-items: center;
   font-size: 1rem;
   font-weight: 800;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35);
 }
 .sidebar-section {
   font-size: 0.72rem;
@@ -286,7 +286,7 @@ h3 { font-size: 0.95rem; margin: 0 0 4px; }
 }
 .stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
 .stat span { display: block; color: var(--text-2); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-.stat strong { display: block; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.stat strong { display: block; font-size: clamp(1.3rem, 6vw, 1.6rem); font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
 .stat small { display: block; color: var(--text-2); font-size: 0.82rem; margin-top: 2px; }
 /* Delta chips on the stat cards: green when up, red when down,
  * muted for flat, new, or empty months. */
@@ -355,11 +355,11 @@ button, .btn {
 }
 button:hover, .btn:hover { border-color: var(--text-2); }
 button:active, .btn:active { transform: scale(0.97); }
-button.primary, .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 1px 2px rgba(37, 99, 235, 0.4); }
-button.primary:hover, .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35); }
+button.primary, .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 1px 2px rgba(5, 150, 105, 0.35); }
+button.primary:hover, .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3); }
 /* Gradient button: hero and final call-to-action only, never body copy. */
-.btn-gradient { background: var(--gradient); border-color: transparent; box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4); }
-.btn-gradient:hover { border-color: transparent; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45); }
+.btn-gradient { background: var(--gradient); border-color: transparent; box-shadow: 0 4px 16px rgba(13, 148, 136, 0.4); }
+.btn-gradient:hover { border-color: transparent; box-shadow: 0 8px 24px rgba(13, 148, 136, 0.45); }
 button.danger { color: var(--error); }
 button.danger:hover { border-color: var(--error); }
 button:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -439,7 +439,7 @@ input::placeholder, textarea::placeholder { color: var(--text-2); opacity: 0.8; 
 .auth-box { width: 100%; max-width: 420px; }
 .auth-box h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 6px; }
 .auth-preview {
-  background: linear-gradient(160deg, #0b1220 0%, #1e1b4b 100%);
+  background: linear-gradient(160deg, #0b1220 0%, #064e3b 100%);
   color: #e5e7eb;
   padding: 48px;
   display: flex;
@@ -677,7 +677,7 @@ input::placeholder, textarea::placeholder { color: var(--text-2); opacity: 0.8; 
 .faq details { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; background: var(--surface); }
 .faq summary { font-weight: 600; cursor: pointer; }
 .faq p { color: var(--text-2); margin: 8px 0 0; }
-.final-cta { background: var(--gradient); color: #fff; border-radius: var(--radius); padding: 40px 32px; margin: 16px 0 32px; box-shadow: 0 16px 40px rgba(99, 102, 241, 0.35); }
+.final-cta { background: var(--gradient); color: #fff; border-radius: var(--radius); padding: 40px 32px; margin: 16px 0 32px; box-shadow: 0 16px 40px rgba(13, 148, 136, 0.35); }
 .final-cta h2 { color: #fff; margin-top: 0; }
 .final-cta p { color: #d1d5db; }
 
