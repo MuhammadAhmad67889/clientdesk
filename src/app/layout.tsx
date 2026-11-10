@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import Shell from "../components/Shell";
 import ToastProvider from "../components/Toast";
 import { getSessionUser } from "../lib/data";
@@ -23,6 +24,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body className={inter.variable}>
         <ToastProvider>{user ? <Shell>{children}</Shell> : <main>{children}</main>}</ToastProvider>
+        {/* Support chat widget: adds the floating "Support" button from the
+            live ClientDesk Support Agent app. */}
+        <Script
+          src="https://clientdesk-support.vercel.app/widget.js"
+          data-base="https://clientdesk-support.vercel.app"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
