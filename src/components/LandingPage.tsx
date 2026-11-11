@@ -140,7 +140,7 @@ export default function LandingPage() {
           <p className="hint">Free to start. New accounts include demo data you can explore or delete.</p>
           <figure className="preview-figure">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img alt="ClientDesk dashboard showing totals, recent invoices, and the overdue list" src="/preview-dashboard.png" />
+            <img alt="ClientDesk dashboard showing totals, recent invoices, and the overdue list" src="/preview-dashboard.webp" />
             <figcaption>The real ClientDesk dashboard, running the demo data a new account starts with.</figcaption>
           </figure>
         </section>
