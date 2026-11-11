@@ -282,6 +282,9 @@ h3 { font-size: 0.95rem; margin: 0 0 4px; }
 }
 .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .card-head p { color: var(--text-2); font-size: 0.88rem; margin: 0; }
+/* Top clients rows highlight on hover, so the list feels alive. */
+.top-clients li { border-radius: 12px; padding: 8px; margin: -8px; transition: background 0.2s ease; }
+.top-clients li:hover { background: var(--surface-2); }
 /* Loading state: shown instantly while a page's server data loads. */
 .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 60vh; color: var(--text-2); }
 .loading p { margin: 0; font-size: 0.9rem; }
@@ -396,7 +399,11 @@ button.ghost { background: transparent; border-color: transparent; }
 .toolbar label { display: grid; gap: 4px; font-size: 0.85rem; font-weight: 600; }
 form.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 form.grid label { display: grid; gap: 5px; font-weight: 600; font-size: 0.88rem; }
-form.grid label.full { grid-column: 1 / -1; }
+/* Any row marked "full" spans both columns — headings, hints,
+ * errors, fieldsets, and action bars. Only labels used to span,
+ * so on desktop the other rows sat in one column next to whatever
+ * was beside them, and a stretched action bar made its button huge. */
+form.grid .full { grid-column: 1 / -1; }
 form.grid input:not([type="checkbox"]):not([type="radio"]), form.grid select, form.grid textarea {
   font: inherit;
   font-weight: 400;
@@ -439,7 +446,7 @@ input::placeholder, textarea::placeholder { color: var(--text-2); opacity: 0.8; 
 }
 .error { color: var(--error); font-size: 0.86rem; font-weight: 400; }
 .hint { color: var(--text-2); font-size: 0.88rem; }
-.actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .footer-note { color: var(--text-2); font-size: 0.88rem; margin-top: 24px; }
 
 /* ---------- Empty states, attention, quick actions ---------- */
