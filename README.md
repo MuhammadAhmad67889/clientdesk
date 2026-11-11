@@ -17,9 +17,6 @@ checklist on the dashboard: add a client, create an invoice, record a
 payment. The demo data that comes with a new account already covers
 the first two, and the checklist says so.
 
-I'm Muhammad Ahmad, a web developer in Rawalpindi / Islamabad, open to
-remote work. muhammadahmad.codes@gmail.com
-
 Built in October 2026, mostly with Next.js and TypeScript. I was learning
 Prisma and auth as I went, so some parts are cleaner than others. In
 November 2026 I redesigned the whole app (the 2.0 look: Inter type, a
