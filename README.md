@@ -21,13 +21,19 @@ I'm Muhammad Ahmad, a web developer in Rawalpindi / Islamabad, open to
 remote work. muhammadahmad.codes@gmail.com
 
 Built in October 2026, mostly with Next.js and TypeScript. I was learning
-Prisma and auth as I went, so some parts are cleaner than others.
+Prisma and auth as I went, so some parts are cleaner than others. In
+November 2026 I redesigned the whole app (the 2.0 look: Inter type, a
+blue theme, softer cards, small animations), added a support chat that
+answers from the app's own help pages, added Zapier webhooks, and made
+pages show a loading spinner instead of a blank screen while the
+server wakes up.
 
 ## What you can do
 
 Sign up with an email and a password (8 characters minimum). Passwords are
 hashed, sessions are stored in the database and sent back as an httpOnly
-cookie. No Google login or anything like that, and no demo account — you
+cookie. Google and GitHub sign-in are built too, but not switched on —
+they need API credentials I haven't added yet. No demo account — you
 have to make your own.
 
 On the dashboard you get your totals: outstanding, paid, overdue, and your
@@ -110,6 +116,75 @@ one JSON file — passwords, sessions and reset tokens are never
 included — delete your whole account by typing your own email address
 to confirm, and see a recent activity log of your own changes.
 
+### Webhooks (Zapier)
+
+In Settings you can add your own webhook URL — for example a
+Catch Hook URL from Webhooks by Zapier — and pick which events it
+receives. ClientDesk posts one JSON payload per event to that URL:
+
+- `client.created` — `{ client: { id, name, email, company } }`
+- `invoice.created` — `{ invoice: { id, number, description, amount, total, dueDate, issuedDate, status }, client: { id, name, email } }`
+- `invoice.paid` — the same invoice shape, with `status: "paid"`
+- `payment.recorded` — `{ payment: { id, amount, method, paidAt, reference }, invoice: { id, number, description, total, status } }`
+
+Every payload is wrapped as `{ event, occurredAt, data }`, and the
+invoice `total` is the discount-then-tax total, the same figure the
+invoice itself shows. Each request carries an
+`X-ClientDesk-Event` header with the event name and an
+`X-ClientDesk-Signature` header — an HMAC-SHA256 of the raw body,
+made with the secret shown once when you add the webhook. Only
+`https://` URLs are accepted. A webhook that is down or slow never
+breaks creating a client, invoice, or payment in ClientDesk.
+
+To use it with Zapier: create a Zap with Webhooks by Zapier →
+Catch Hook, copy the webhook URL, paste it in Settings, pick the
+events, then press Test — it sends a sample payload labelled as a
+test, and shows the status Zapier answered with.
+
+### Support chat
+
+Every page has a Support button (bottom right). It opens a chat that
+answers questions from ClientDesk's own help pages — what the free
+plan allows, how to export clients, how to reset a password — and
+every answer names the page it came from. If it can't find an answer
+it says so honestly and offers to open a ticket for a human instead
+of guessing. The chat runs on a separate small app,
+[clientdesk-support](https://github.com/MuhammadAhmad67889/clientdesk-support)
+(live at https://clientdesk-support.vercel.app), which answers with a
+free Groq model when its key is set and quotes the help pages
+verbatim when it isn't. Tickets land in an admin inbox there, where a
+human can reply and the reply shows back in the chat.
+
+## How the code is organised
+
+I wrote the code to be easy to read and easy to debug — small
+functions with plain names, and comments only where they explain
+*why* something is done a certain way, not what the code already
+says. If you're reading it for the first time, start here:
+
+- `src/app/` — one folder per page (`clients`, `invoices`,
+  `settings`, …). Pages are server components: they check who is
+  signed in, fetch that user's data, and hand it to a client
+  component that renders the interactive bits. `loading.tsx` is the
+  spinner every page shows while its data loads.
+- `src/lib/data.ts` — the database calls for clients, invoices,
+  payments, and sessions. Every query filters by the signed-in
+  user's id, so accounts can't see each other's data.
+- `src/lib/` — one file per idea, each with tests next to it:
+  `invoices.ts` (totals, discount-then-tax maths), `billing.ts`
+  (which Stripe status means Pro), `webhooks.ts` (Zapier payloads
+  and signing), `auth.ts` (passwords and sessions), `plans.ts`
+  (Free 10 clients / 30 invoices).
+- `src/components/` — the pieces pages share: the sidebar shell,
+  the forms, the command palette, the webhook form.
+- `src/app/globals.css` — all the styling, in one file, as plain
+  CSS variables (`--primary` is the blue). No component library.
+- `prisma/schema.prisma` — the database tables. `prisma/migrations/`
+  holds one folder per change, in date order.
+
+Run `npm test` and you'll see the same shape: one test file per lib
+file, named the same way (`invoices.test.ts` tests `invoices.ts`).
+
 ## How to run it
 
 You need Node 20+ and npm, and Postgres running locally.
@@ -167,18 +242,23 @@ No email verification yet, and password reset by email is built but
 not switched on — it needs an email service, which I haven't
 configured. If you're signed in, you can change your password from
 Settings instead, and it signs you out on your other devices. Billing
-is built but not switched on (see Plans and billing above). There are
-no projects, tasks, messages, or reports pages, and no file
-attachments — I didn't invent those, so the sidebar lists Overview,
-Clients, Invoices, Payments, Analytics, and Settings.
+is built but not switched on (see Plans and billing above). The first
+load after a pause is slow (about 2.5 seconds) because the free
+database sleeps after 5 minutes idle — I deliberately don't ping it
+awake, because the free plan only allows 100 compute-hours a month
+and keeping it awake would use them up and get the database switched
+off until next month. There are no projects, tasks, messages, or
+reports pages, and no file attachments — I didn't invent those, so
+the sidebar lists Overview, Clients, Invoices, Payments, Analytics,
+and Settings.
 
 ## Screenshots
 
-These are real screenshots of the deployed app, taken 4 November 2026
-with the seeded demo data (not a real customer's data). They show the
-current interface: dashboard with revenue trend and recent activity,
-clients, invoices, and an invoice detail page with line items and
-payment history.
+These are real screenshots of the deployed app, taken 11 November
+2026 with the seeded demo data (not a real customer's data). They
+show the current interface in the blue 2.0 design: dashboard with
+revenue trend and recent activity, clients, invoices, and an invoice
+detail page with line items and payment history.
 
 ![Dashboard](docs/screenshots/dashboard.png)
 ![Clients](docs/screenshots/clients.png)
@@ -193,9 +273,18 @@ build on Node 20 and 22. The live checks I actually did: logged out,
 reloaded, and both were still there.
 
 The screenshots above are real shots of the deployed app with seeded
-demo data, taken 4 November 2026 — not a real customer's data. They show
-the current interface, including the revenue trend, recent activity,
-line items, and payment history.
+demo data, taken 11 November 2026 — not a real customer's data. They
+show the current interface in the blue 2.0 design, including the
+revenue trend, recent activity, line items, and payment history.
+
+Verified live, 11 November 2026: the Zapier webhooks section shows in
+Settings and accepts a Catch Hook URL; the support chat answers live
+from the help pages; the blue theme and the small inline checkboxes
+are live on the real site; pages show a loading spinner while the
+server wakes up. The first load after a pause takes about 2.5 seconds
+(the free database sleeps after 5 minutes idle) and warm loads take
+under a second — see "What's still rough" for why I don't keep it
+awake.
 
 Data cleanup, 1 November 2026: the live database had picked up six
 throwaway test accounts from verification and screenshot work (19
@@ -227,6 +316,19 @@ logged-out visitors to `/login`.
 - Switch on Stripe billing in test mode, then try a demo payment with a test card.
 - Password reset by email, once there's an email service.
 - Draft helpers that use a real language model (needs an API key) — the rule-based drafts above are the fallback if there's no key.
+
+## Features added in November 2026
+
+- 2.0 redesign: Inter type, blue theme, softer cards and shadows,
+  hover lifts, a command palette, and a mobile bottom nav.
+- Support chat on every page, answering from the help pages with
+  sources, backed by a separate support app (Groq live mode).
+- Zapier webhooks in Settings: client added, invoice created,
+  invoice paid, payment recorded — signed, https-only, tested from
+  the Settings page.
+- A loading spinner on every page, so a slow first load never looks
+  like a dead screen.
+- A smaller, blue landing preview image (WebP, 28KB).
 
 ## Features added 30 October 2026
 
