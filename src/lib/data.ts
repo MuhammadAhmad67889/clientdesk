@@ -4,6 +4,7 @@ import { hashEquals, hashToken, SESSION_COOKIE, verifySessionCookie } from "./au
 import { recordAudit } from "./audit";
 import { getPrisma } from "./prisma";
 import { applyInvoiceEdit, applyPaymentDeletion, buildDuplicateInput, computeAmountPaid, computeInvoiceTotal, computeItemsSubtotal, computeRemainingBalance, seedData, todayIso } from "./invoices";
+import { dispatchWebhooks, webhookClientData, webhookInvoiceData, webhookPaymentData, type WebhookEvent } from "./webhooks";
 import type { InvoiceItemInput } from "./invoices";
 import { addMonths, dueTemplates } from "./recurring";
 import type { Client, Invoice, Payment, RecurringTemplate } from "./types";
@@ -17,6 +18,33 @@ export interface SessionUser {
 
 function dateToDay(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+/** Fire a webhook event, best-effort: a dead Zapier URL must never
+ * break the ClientDesk change that fired it, so any failure here
+ * is swallowed — dispatchWebhooks already never throws either. */
+async function notifyWebhooks(
+  userId: string,
+  event: WebhookEvent,
+  data: Record<string, unknown>,
+  db: PrismaClient,
+): Promise<void> {
+  try {
+    await dispatchWebhooks(userId, event, data, db);
+  } catch {
+    // Webhooks are a side effect, never part of the user's change.
+  }
+}
+
+/** The client for an invoice payload, or null when it is gone. */
+async function invoiceClient(
+  userId: string,
+  clientId: string,
+  db: PrismaClient,
+): Promise<{ email?: string; id: string; name: string } | null> {
+  const client = await db.client.findFirst({ where: { id: clientId, userId } });
+  if (!client) return null;
+  return { email: client.email ?? undefined, id: client.id, name: client.name };
 }
 
 function toClient(row: {
@@ -211,6 +239,7 @@ export async function createClient(
     await db.client.create({ data: { ...input, userId } }),
   );
   await recordAudit(userId, "client.created", created.name, db);
+  await notifyWebhooks(userId, "client.created", webhookClientData(created), db);
   return created;
 }
 
@@ -291,6 +320,12 @@ export async function createInvoice(
   });
   const invoice = toInvoice(created);
   await recordAudit(userId, "invoice.created", invoice.description, db);
+  await notifyWebhooks(
+    userId,
+    "invoice.created",
+    webhookInvoiceData(invoice, { email: client.email ?? undefined, id: client.id, name: client.name }),
+    db,
+  );
   return invoice;
 }
 
@@ -302,10 +337,17 @@ export async function setInvoicePaid(
 ): Promise<Invoice | null> {
   const existing = await db.invoice.findFirst({ where: { id, userId } });
   if (!existing) return null;
+  const wasPaid = existing.status === "paid";
   const updated = toInvoice(
     await db.invoice.update({ data: { status: paid ? "paid" : "unpaid" }, where: { id } }),
   );
   await recordAudit(userId, paid ? "invoice.paid" : "invoice.unpaid", updated.description, db);
+  if (paid && !wasPaid) {
+    const client = await invoiceClient(userId, updated.clientId, db);
+    if (client) {
+      await notifyWebhooks(userId, "invoice.paid", webhookInvoiceData(updated, client), db);
+    }
+  }
   return updated;
 }
 
@@ -424,7 +466,12 @@ export async function generateDueRecurring(
       where: { id: t.id },
     });
     await recordAudit(userId, "invoice.created", t.description, db);
-    created.push(toInvoice(invoice));
+    const generated = toInvoice(invoice);
+    const client = await invoiceClient(userId, generated.clientId, db);
+    if (client) {
+      await notifyWebhooks(userId, "invoice.created", webhookInvoiceData(generated, client), db);
+    }
+    created.push(generated);
   }
   return created;
 }
@@ -476,11 +523,20 @@ export async function recordPayment(
     },
   });
   const newPaid = computeAmountPaid([...paid, toPayment(created)]);
-  if (newPaid >= computeInvoiceTotal(inv) - 0.001) {
+  const flippedToPaid = newPaid >= computeInvoiceTotal(inv) - 0.001;
+  if (flippedToPaid) {
     await db.invoice.update({ data: { status: "paid" }, where: { id: invoiceId } });
   }
   const payment = toPayment(created);
   await recordAudit(userId, "payment.recorded", inv.description, db);
+  const updatedInvoice: Invoice = { ...inv, status: flippedToPaid ? "paid" : inv.status };
+  await notifyWebhooks(userId, "payment.recorded", webhookPaymentData(payment, updatedInvoice), db);
+  if (flippedToPaid) {
+    const client = await invoiceClient(userId, invoice.clientId, db);
+    if (client) {
+      await notifyWebhooks(userId, "invoice.paid", webhookInvoiceData(updatedInvoice, client), db);
+    }
+  }
   return payment;
 }
 
