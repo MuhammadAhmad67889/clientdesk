@@ -341,6 +341,9 @@ export function formatMoney(amount: number): string {
   })}`;
 }
 
+/** The demo data a new account starts with: 3 clients and 5 invoices.
+ * It is just a list — no logic here. Dates are relative to today,
+ * so one invoice is always overdue. */
 export function seedData(today: string): { clients: Client[]; invoices: Invoice[] } {
   const clients: Client[] = [
     {
