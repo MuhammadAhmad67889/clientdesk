@@ -33,6 +33,7 @@ model User {
   resetTokens  PasswordResetToken[]
   sessions     Session[]
   auditEntries AuditLog[]
+  webhookSubscriptions WebhookSubscription[]
 }
 
 /** One durable line per meaningful change a user makes, so an account
@@ -152,4 +153,21 @@ model Payment {
 
   @@index([userId])
   @@index([invoiceId])
+}
+
+/** A user's own webhook URL, for Zapier and similar tools.
+ * ClientDesk posts one JSON payload per event to the URL; the
+ * secret signs each payload so the receiver can check it came
+ * from ClientDesk. The secret is shown once, when created. */
+model WebhookSubscription {
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  events    String[]
+  id        String   @id @default(cuid())
+  secret    String
+  url       String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@index([userId])
 }
