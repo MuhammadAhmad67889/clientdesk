@@ -54,6 +54,10 @@ export default function AnalyticsClient({
   const rate = collectionRate(initialInvoices, initialPayments);
   const statuses = statusBreakdown(initialInvoices, initialPayments, today);
   const clients = topClients(initialInvoices, initialPayments, initialClients);
+  // Plain-language summary for the range the chart shows.
+  const rangeBilled = months.reduce((sum, m) => sum + m.billed, 0);
+  const rangePaid = months.reduce((sum, m) => sum + m.paid, 0);
+  const rangeOutstanding = months.reduce((sum, m) => sum + m.outstanding, 0);
 
   return (
     <Reveal>
@@ -85,10 +89,14 @@ export default function AnalyticsClient({
         <div className="card-head">
           <h2>Billed vs paid</h2>
           <div style={{ display: "flex", gap: 6 }} role="group" aria-label="Months shown">
+            <button className={range === 3 ? "btn btn-primary" : "btn"} onClick={() => setRange(3)} type="button">3 months</button>
             <button className={range === 6 ? "btn btn-primary" : "btn"} onClick={() => setRange(6)} type="button">6 months</button>
             <button className={range === 12 ? "btn btn-primary" : "btn"} onClick={() => setRange(12)} type="button">12 months</button>
           </div>
         </div>
+        <p style={{ margin: "0 0 12px" }}>
+          In the last {range} months you billed {formatMoney(rangeBilled)}, got paid {formatMoney(rangePaid)}, and {formatMoney(rangeOutstanding)} is still outstanding.
+        </p>
         <MonthlyBars months={months} />
       </div>
 

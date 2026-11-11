@@ -11,7 +11,7 @@ export default function TopClients({ rows }: { rows: ClientRow[] }) {
       {rows.length === 0 ? (
         <p className="hint" style={{ margin: 0 }}>No clients with invoices yet.</p>
       ) : (
-        <ul style={{ display: "grid", gap: 14, listStyle: "none", margin: 0, padding: 0 }}>
+        <ul className="top-clients" style={{ display: "grid", gap: 14, listStyle: "none", margin: 0, padding: 0 }}>
           {rows.map((r) => (
             <li key={r.id}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
