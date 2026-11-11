@@ -49,12 +49,12 @@ export default function MonthlyBars({ months }: { months: MonthRow[] }) {
               return (
                 <g
                   key={m.key}
+                  aria-label={`${m.label}: billed ${formatMoney(m.billed)}, paid ${formatMoney(m.paid)}, outstanding ${formatMoney(m.outstanding)}`}
                   opacity={dimmed ? 0.4 : 1}
                   onMouseEnter={() => setHovered(i)}
                   onMouseLeave={() => setHovered(null)}
                   style={{ cursor: "pointer" }}
                 >
-                  <title>{m.label}: billed {formatMoney(m.billed)}, paid {formatMoney(m.paid)}, outstanding {formatMoney(m.outstanding)}</title>
                   <rect fill="var(--primary)" height={barH(m.billed)} width="14" x={x} y={plotH - barH(m.billed)} rx="2" />
                   <rect fill="var(--success)" height={barH(m.paid)} width="14" x={x + 18} y={plotH - barH(m.paid)} rx="2" />
                   <text fill="var(--text-2)" fontSize="11" textAnchor="middle" x={x + 16} y={chartH - 8}>{m.label}</text>
