@@ -4,11 +4,11 @@
  * nothing here is reset by the framework. */
 @tailwind utilities;
 
-/* Design tokens — ClientDesk 2.0. Inter everywhere, one amber,
+/* Design tokens — ClientDesk 2.0. Inter everywhere, one blue,
  * one gradient accent reserved for hero moments. 8px spacing scale.
- * Yellow is light, so text on yellow fills is dark ink
- * (--on-primary), and small text in the scheme is a darker amber
- * (--primary-text) that stays readable on white. */
+ * Text on blue fills is white (--on-primary), and small text in
+ * the scheme is the same blue (--primary-text) which stays
+ * readable on white. */
 :root {
   color-scheme: light;
   --bg: #f6f7f9;
@@ -17,11 +17,11 @@
   --text: #0f172a;
   --text-2: #64748b;
   --border: #e6e8ec;
-  --primary: #eab308;
-  --primary-hover: #ca8a04;
-  --primary-soft: #fef9c3;
-  --primary-text: #a16207;
-  --on-primary: #1c1917;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-soft: #eff6ff;
+  --primary-text: #2563eb;
+  --on-primary: #ffffff;
   --success: #16a34a;
   --success-soft: #dcfce7;
   --warning: #d97706;
@@ -32,7 +32,7 @@
   --topbar-bg: rgba(255, 255, 255, 0.85);
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 8px 24px rgba(16, 24, 40, 0.06);
   --shadow-lg: 0 2px 4px rgba(16, 24, 40, 0.06), 0 16px 40px rgba(16, 24, 40, 0.12);
-  --gradient: linear-gradient(135deg, #facc15, #f59e0b);
+  --gradient: linear-gradient(135deg, #2563eb, #7c3aed);
   --radius: 20px;
   --radius-sm: 12px;
 }
@@ -44,11 +44,11 @@
   --text: #f1f5f9;
   --text-2: #94a3b8;
   --border: #1f2a3d;
-  --primary: #facc15;
-  --primary-hover: #fde047;
-  --primary-soft: #422006;
-  --primary-text: #fde047;
-  --on-primary: #1c1917;
+  --primary: #60a5fa;
+  --primary-hover: #93c5fd;
+  --primary-soft: #1e3a5f;
+  --primary-text: #93c5fd;
+  --on-primary: #0f172a;
   --success: #4ade80;
   --success-soft: #14532d;
   --warning: #fbbf24;
@@ -123,7 +123,7 @@ a:hover { text-decoration: underline; }
   place-items: center;
   font-size: 1rem;
   font-weight: 800;
-  box-shadow: 0 2px 8px rgba(234, 179, 8, 0.35);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
 }
 .sidebar-section {
   font-size: 0.72rem;
@@ -362,11 +362,11 @@ button, .btn {
 }
 button:hover, .btn:hover { border-color: var(--text-2); }
 button:active, .btn:active { transform: scale(0.97); }
-button.primary, .btn-primary { background: var(--primary); color: var(--on-primary); border-color: var(--primary); box-shadow: 0 1px 2px rgba(234, 179, 8, 0.35); }
-button.primary:hover, .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); box-shadow: 0 4px 12px rgba(202, 138, 4, 0.35); }
+button.primary, .btn-primary { background: var(--primary); color: var(--on-primary); border-color: var(--primary); box-shadow: 0 1px 2px rgba(37, 99, 235, 0.4); }
+button.primary:hover, .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35); }
 /* Gradient button: hero and final call-to-action only, never body copy. */
-.btn-gradient { background: var(--gradient); color: var(--on-primary); border-color: transparent; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4); }
-.btn-gradient:hover { border-color: transparent; box-shadow: 0 8px 24px rgba(245, 158, 11, 0.45); }
+.btn-gradient { background: var(--gradient); color: var(--on-primary); border-color: transparent; box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4); }
+.btn-gradient:hover { border-color: transparent; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45); }
 button.danger { color: var(--error); }
 button.danger:hover { border-color: var(--error); }
 button:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -392,7 +392,7 @@ button.ghost { background: transparent; border-color: transparent; }
 form.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 form.grid label { display: grid; gap: 5px; font-weight: 600; font-size: 0.88rem; }
 form.grid label.full { grid-column: 1 / -1; }
-form.grid input, form.grid select, form.grid textarea {
+form.grid input:not([type="checkbox"]):not([type="radio"]), form.grid select, form.grid textarea {
   font: inherit;
   font-weight: 400;
   padding: 10px 12px;
@@ -405,6 +405,22 @@ form.grid input, form.grid select, form.grid textarea {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 form.grid textarea { min-height: 72px; resize: vertical; }
+/* Checkboxes and radios stay small and sit beside their label text.
+ * Without this, the full-width input rule above stretches them to
+ * the width of the form and stacks them above their label. */
+input[type="checkbox"], input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+form.grid label:has(input[type="checkbox"]), form.grid label:has(input[type="radio"]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 input::placeholder, textarea::placeholder { color: var(--text-2); opacity: 0.8; }
 .password-field { position: relative; }
 .password-field input { padding-right: 64px; }
@@ -446,7 +462,7 @@ input::placeholder, textarea::placeholder { color: var(--text-2); opacity: 0.8; 
 .auth-box { width: 100%; max-width: 420px; }
 .auth-box h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 6px; }
 .auth-preview {
-  background: linear-gradient(160deg, #0b1220 0%, #451a03 100%);
+  background: linear-gradient(160deg, #0b1220 0%, #1e1b4b 100%);
   color: #e5e7eb;
   padding: 48px;
   display: flex;
@@ -684,7 +700,7 @@ input::placeholder, textarea::placeholder { color: var(--text-2); opacity: 0.8; 
 .faq details { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; background: var(--surface); }
 .faq summary { font-weight: 600; cursor: pointer; }
 .faq p { color: var(--text-2); margin: 8px 0 0; }
-.final-cta { background: var(--gradient); color: var(--on-primary); border-radius: var(--radius); padding: 40px 32px; margin: 16px 0 32px; box-shadow: 0 16px 40px rgba(245, 158, 11, 0.35); }
+.final-cta { background: var(--gradient); color: var(--on-primary); border-radius: var(--radius); padding: 40px 32px; margin: 16px 0 32px; box-shadow: 0 16px 40px rgba(99, 102, 241, 0.35); }
 .final-cta h2 { color: var(--on-primary); margin-top: 0; }
 .final-cta p { color: #d1d5db; }
 
