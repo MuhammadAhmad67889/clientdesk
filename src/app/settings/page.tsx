@@ -4,6 +4,7 @@ import BillingSection from "../../components/BillingSection";
 import BusinessNameForm from "../../components/BusinessNameForm";
 import ChangePasswordForm from "../../components/ChangePasswordForm";
 import DeleteAccountForm from "../../components/DeleteAccountForm";
+import WebhooksForm from "../../components/WebhooksForm";
 import { listAuditEntries } from "../../lib/audit";
 import { getBilling, getSessionUser, getUsage } from "../../lib/data";
 import { isBillingConfigured } from "../../lib/billing";
@@ -74,6 +75,7 @@ export default async function SettingsPage() {
       </div>
       <ChangePasswordForm />
       <BusinessNameForm initialName={user.businessName ?? ""} />
+      <WebhooksForm />
       <div className="card">
         <h2>Your data</h2>
         <p style={{ margin: 0 }}>
