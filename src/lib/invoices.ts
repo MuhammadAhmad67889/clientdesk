@@ -19,11 +19,6 @@ export function isOverdue(invoice: Invoice, today: string): boolean {
 }
 
 /**
- * Total due for one invoice: discount first, then tax on the discounted
- * amount, rounded to cents. With 0% tax and 0% discount this is just
- * the amount, so old invoices are unaffected.
- */
-/**
  * Total due for one amount: discount first, then tax on the discounted
  * amount, rounded to cents. The invoice version below is just this
  * with the invoice's own figures, so the landing-page calculator and
