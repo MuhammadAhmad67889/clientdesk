@@ -48,7 +48,7 @@ export default function PricingPage() {
         </section>
         <section className="price-grid">
           {tiers.map((tier) => (
-            <article className="card price-card" key={tier.name}>
+            <article className={`card price-card${tier.name === "Pro" ? " featured" : ""}`} key={tier.name}>
               <h2>{tier.name}</h2>
               <p className="price">{tier.price}</p>
               <p>{tier.note}</p>
