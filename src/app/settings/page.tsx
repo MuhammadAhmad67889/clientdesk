@@ -49,10 +49,37 @@ export default async function SettingsPage() {
           Current plan: <strong>{plan === "free" ? "Free" : plan === "pro" ? "Pro" : "Business"}</strong>
         </p>
         {plan === "free" ? (
-          <p className="hint" style={{ marginBottom: 0 }}>
-            Usage: {usage.clientCount} of {FREE_CLIENT_LIMIT} clients · {usage.invoiceCount} of {FREE_INVOICE_LIMIT} invoices.
-            Demo data counts toward these limits. Pro checkout opens once Stripe is connected in test mode.
-          </p>
+          <>
+            <div className="usage">
+              <div className="usage-row">
+                <span className="usage-label">
+                  <span>Clients</span>
+                  <span>{usage.clientCount} of {FREE_CLIENT_LIMIT}</span>
+                </span>
+                <div className="usage-track">
+                  <div
+                    className={`usage-fill${usage.clientCount >= FREE_CLIENT_LIMIT ? " full" : ""}`}
+                    style={{ width: `${Math.min(100, Math.round((usage.clientCount / FREE_CLIENT_LIMIT) * 100))}%` }}
+                  />
+                </div>
+              </div>
+              <div className="usage-row">
+                <span className="usage-label">
+                  <span>Invoices</span>
+                  <span>{usage.invoiceCount} of {FREE_INVOICE_LIMIT}</span>
+                </span>
+                <div className="usage-track">
+                  <div
+                    className={`usage-fill${usage.invoiceCount >= FREE_INVOICE_LIMIT ? " full" : ""}`}
+                    style={{ width: `${Math.min(100, Math.round((usage.invoiceCount / FREE_INVOICE_LIMIT) * 100))}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+            <p className="hint" style={{ marginBottom: 0 }}>
+              Demo data counts toward these limits. Pro checkout opens once Stripe is connected in test mode.
+            </p>
+          </>
         ) : (
           <p className="hint" style={{ marginBottom: 0 }}>
             Usage: {usage.clientCount} clients · {usage.invoiceCount} invoices — unlimited on your plan.
