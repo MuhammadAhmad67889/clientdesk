@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Banknote, BarChart3, ChevronDown, ChevronLeft, ChevronRight, FileText, LayoutGrid, LogOut, Menu, Settings, User, Users } from "lucide-react";
+import { Banknote, BarChart3, ChevronDown, ChevronLeft, ChevronRight, FileText, LayoutGrid, LogOut, Menu, Moon, Settings, Sun, User, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import CommandPalette from "./CommandPalette";
 
@@ -16,14 +16,15 @@ const NAV = [
 ];
 
 /** One icon per nav section, from Lucide, so every icon in the app
- * shares the same stroke and size. */
+ * shares the same stroke and size. Decorative only — the label
+ * beside it carries the meaning, so screen readers skip the SVG. */
 function Icon({ kind }: { kind: string }) {
-  if (kind === "clients") return <Users size={18} />;
-  if (kind === "invoices") return <FileText size={18} />;
-  if (kind === "payments") return <Banknote size={18} />;
-  if (kind === "analytics") return <BarChart3 size={18} />;
-  if (kind === "settings") return <Settings size={18} />;
-  return <LayoutGrid size={18} />;
+  if (kind === "clients") return <Users aria-hidden="true" size={18} />;
+  if (kind === "invoices") return <FileText aria-hidden="true" size={18} />;
+  if (kind === "payments") return <Banknote aria-hidden="true" size={18} />;
+  if (kind === "analytics") return <BarChart3 aria-hidden="true" size={18} />;
+  if (kind === "settings") return <Settings aria-hidden="true" size={18} />;
+  return <LayoutGrid aria-hidden="true" size={18} />;
 }
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -123,7 +124,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="sidebar-foot">
           <button className="nav-item" onClick={toggleCollapsed} type="button">
-            <span className="nav-icon">{collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}</span>
+            <span className="nav-icon">{collapsed ? <ChevronRight aria-hidden="true" size={18} /> : <ChevronLeft aria-hidden="true" size={18} />}</span>
             <span className="nav-label">{collapsed ? "Expand sidebar" : "Collapse sidebar"}</span>
           </button>
         </div>
@@ -136,7 +137,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             onClick={() => setMobileOpen(true)}
             type="button"
           >
-            ☰
+            <Menu aria-hidden="true" size={20} />
           </button>
           <div className="topbar-spacer" />
           {email && (
@@ -152,7 +153,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             type="button"
           >
-            {theme === "dark" ? "☀" : "☾"}
+            {theme === "dark" ? <Sun aria-hidden="true" size={18} /> : <Moon aria-hidden="true" size={18} />}
           </button>
           {email && (
             <div className="profile-menu">
@@ -163,8 +164,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 onClick={() => setProfileOpen((v) => !v)}
                 type="button"
               >
-                <User size={18} />
-                <ChevronDown size={14} />
+                <User aria-hidden="true" size={18} />
+                <ChevronDown aria-hidden="true" size={14} />
               </button>
               {profileOpen && (
                 <>
@@ -195,7 +196,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </Link>
         ))}
         <button aria-label="Open navigation menu" className="bottom-nav-item" onClick={() => setMobileOpen(true)} type="button">
-          <Menu size={18} />
+          <Menu aria-hidden="true" size={18} />
           <span>Menu</span>
         </button>
       </nav>

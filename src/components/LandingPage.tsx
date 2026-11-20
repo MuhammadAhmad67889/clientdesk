@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Banknote, BarChart3, FileDown, LayoutDashboard, PenLine, ReceiptText, Repeat, Search, Users, Wallet } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import InvoiceCalculator from "./InvoiceCalculator";
 import { PublicFooter, PublicNav } from "./Public";
 import Reveal from "./Reveal";
@@ -8,54 +10,64 @@ import Reveal from "./Reveal";
  * invented user counts. The hero image is a real screenshot of the
  * live app running demo data, not a mockup. */
 
-const features = [
+const features: { detail: string; icon: LucideIcon; text: string; title: string }[] = [
   {
     detail: "Search by name or company, sort the list, export it as CSV.",
+    icon: Users,
     text: "Names, companies, emails, phones and notes — searchable, and yours alone.",
     title: "Clients in one place",
   },
   {
     detail: "Line items or a single amount, invoice numbers, discount and tax rates, due dates — the breakdown shows on the invoice, the PDF, and the CSV.",
+    icon: ReceiptText,
     text: "Invoice numbers, line items, discount and tax rates, due dates, and totals that add up the same way everywhere.",
     title: "Invoices that add up",
   },
   {
     detail: "Part-payments, paid so far, remaining balance. An invoice flips to paid the moment payments cover it.",
+    icon: Banknote,
     text: "Record what a client actually paid and when — not just a paid/unpaid toggle.",
     title: "Payments, not just totals",
   },
   {
     detail: "One-page PDF per invoice, generated on the server. CSV exports for clients and invoices, including paid and balance columns — and CSV import for clients.",
+    icon: FileDown,
     text: "Download an invoice as a PDF, take your data as CSV, or bring a client list in.",
     title: "PDFs and CSVs",
   },
   {
     detail: "Set a monthly retainer once; press Generate due now when it's due. Nothing is generated behind your back.",
+    icon: Repeat,
     text: "A monthly retainer becomes one invoice when its due date arrives.",
     title: "Recurring invoices",
   },
   {
     detail: "Outstanding, paid, overdue, last six months — plus this month's totals and largest outstanding balances. All computed from your real rows.",
+    icon: LayoutDashboard,
     text: "A dashboard that tells the truth about what you are owed.",
     title: "A dashboard that tells the truth",
   },
   {
     detail: "Billed vs paid bars, an invoice-status donut, top clients, and a collection rate — with a 6 or 12 month range. Totals only, no forecasts.",
+    icon: BarChart3,
     text: "Charts and tables from your real invoices and payments.",
     title: "Analytics that explain themselves",
   },
   {
     detail: "Money received and balances still owed, All, Completed and Pending tabs, and a record-a-payment form on the page itself.",
+    icon: Wallet,
     text: "Every payment in one place, with the invoice and client beside it.",
     title: "A dedicated payments page",
   },
   {
     detail: "Paste free text and get an editable invoice draft — amount, due date, and client pulled out by rules, never invented. Reminder drafts use your real figures.",
+    icon: PenLine,
     text: "Drafts from plain text, confirmed by you before anything is saved.",
     title: "Drafts from plain text",
   },
   {
     detail: "Ctrl/Cmd+K searches real clients and invoices. Sort the lists, filter by due date or archive, and page through them.",
+    icon: Search,
     text: "Find anything fast, on desktop and on your phone.",
     title: "Find anything fast",
   },
@@ -127,18 +139,18 @@ export default function LandingPage() {
       <PublicNav />
       <main>
         <section className="public-hero">
-          <h1>Freelance clients and invoices, <span className="gradient-text">without the spreadsheet.</span></h1>
-          <p className="lead">
+          <h1 data-reveal>Freelance clients and invoices, <span className="gradient-text">without the spreadsheet.</span></h1>
+          <p className="lead" data-reveal>
             ClientDesk keeps your clients, invoices, and payments in one
             private account — so you always know who owes you, what is
             overdue, and what you have actually been paid.
           </p>
-          <div className="page-actions">
+          <div className="page-actions" data-reveal>
             <Link className="btn btn-primary btn-gradient" href="/signup">Create a free account</Link>
             <Link className="btn" href="/pricing">See pricing</Link>
           </div>
-          <p className="hint">Free to start. New accounts include demo data you can explore or delete.</p>
-          <figure className="preview-figure">
+          <p className="hint" data-reveal>Free to start. New accounts include demo data you can explore or delete.</p>
+          <figure className="preview-figure" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img alt="ClientDesk dashboard showing totals, recent invoices, and the overdue list" src="/preview-dashboard.webp" />
             <figcaption>The real ClientDesk dashboard, running the demo data a new account starts with.</figcaption>
@@ -158,6 +170,7 @@ export default function LandingPage() {
           <div className="feature-grid">
             {features.map((f) => (
               <article className="card" key={f.title}>
+                <span className="feature-icon"><f.icon aria-hidden="true" size={20} /></span>
                 <h3>{f.title}</h3>
                 <p>{f.text}</p>
                 <p className="hint">{f.detail}</p>
@@ -189,7 +202,7 @@ export default function LandingPage() {
           <h2>Plans that fit your freelance journey</h2>
           <div className="price-grid">
             {tiers.map((tier) => (
-              <article className="card price-card" key={tier.name}>
+              <article className={`card price-card${tier.name === "Pro" ? " featured" : ""}`} key={tier.name}>
                 <h3>{tier.name}</h3>
                 <p className="price">{tier.price}</p>
                 <p>{tier.note}</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Search, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState, StatusBadge } from "./ui";
@@ -243,6 +244,7 @@ export default function InvoicesClient({
         <EmptyState
           actionHref="/clients"
           actionLabel="Go to Clients"
+          icon={<Users aria-hidden="true" size={22} />}
           text="Invoices need a client first."
           title="Add a client first"
         />
@@ -373,6 +375,7 @@ export default function InvoicesClient({
 
       {filtered.length === 0 ? (
         <EmptyState
+          icon={<Search aria-hidden="true" size={22} />}
           text="Try a different search, filter, or sort — or add an invoice above."
           title="No invoices match this view"
         />
