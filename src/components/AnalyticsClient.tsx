@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { Banknote, FileText, Percent, ReceiptText } from "lucide-react";
 import DeltaChip from "./DeltaChip";
 import MonthlyBars from "./MonthlyBars";
 import Reveal from "./Reveal";
 import StatusDonut from "./StatusDonut";
 import TopClients from "./TopClients";
+import { CountUp } from "./ui";
 import { formatMoney, todayIso } from "../lib/invoices";
 import {
   collectionRate,
@@ -68,19 +70,27 @@ export default function AnalyticsClient({
 
       <div className="stats">
         <div className="stat" data-reveal>
-          <span>Billed this month</span><strong>{formatMoney(billedByMonth.get(thisMonthKey) ?? 0)}</strong>
+          <span className="stat-icon"><ReceiptText aria-hidden="true" size={16} /></span>
+          <span>Billed this month</span>
+          <strong><CountUp format={formatMoney} value={billedByMonth.get(thisMonthKey) ?? 0} /></strong>
           <DeltaChip delta={billedDelta} />
         </div>
         <div className="stat" data-reveal>
-          <span>Paid this month</span><strong>{formatMoney(paidByMonth.get(thisMonthKey) ?? 0)}</strong>
+          <span className="stat-icon success"><Banknote aria-hidden="true" size={16} /></span>
+          <span>Paid this month</span>
+          <strong><CountUp format={formatMoney} value={paidByMonth.get(thisMonthKey) ?? 0} /></strong>
           <DeltaChip delta={paidDelta} />
         </div>
         <div className="stat" data-reveal>
-          <span>Issued this month</span><strong>{issuedThisMonth.length}</strong>
+          <span className="stat-icon"><FileText aria-hidden="true" size={16} /></span>
+          <span>Issued this month</span>
+          <strong><CountUp format={(n) => String(Math.round(n))} value={issuedThisMonth.length} /></strong>
           <small>{issuedThisMonth.length === 1 ? "invoice" : "invoices"}</small>
         </div>
         <div className="stat" data-reveal>
-          <span>Collection rate</span><strong>{rate === null ? "—" : `${rate}%`}</strong>
+          <span className="stat-icon"><Percent aria-hidden="true" size={16} /></span>
+          <span>Collection rate</span>
+          <strong>{rate === null ? "—" : <CountUp format={(n) => `${Math.round(n)}%`} value={rate} />}</strong>
           <small>{rate === null ? "Nothing billed yet" : "Paid share of all billed money"}</small>
         </div>
       </div>

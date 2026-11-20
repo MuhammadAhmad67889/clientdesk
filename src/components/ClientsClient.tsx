@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Search, Users } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import Reveal from "./Reveal";
 import { EmptyState } from "./ui";
@@ -254,11 +255,13 @@ export default function ClientsClient({
 
       {clients.length === 0 ? (
         <EmptyState
+          icon={<Users aria-hidden="true" size={22} />}
           text="Add your first client above, then create invoices for them."
           title="No clients yet"
         />
       ) : filtered.length === 0 ? (
         <EmptyState
+          icon={<Search aria-hidden="true" size={22} />}
           text="Try a different search term, sort, or archive filter to see all clients."
           title="No clients match your search"
         />

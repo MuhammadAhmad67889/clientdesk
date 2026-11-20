@@ -1,13 +1,15 @@
 "use client";
 
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowRight, Banknote, Clock, FileText, Users, Wallet } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import DeltaChip from "./DeltaChip";
 import OnboardingCard from "./OnboardingCard";
 import Reveal from "./Reveal";
 import { ConfirmDialog } from "./Dialog";
-import { EmptyState, StatusBadge } from "./ui";
+import { CountUp, EmptyState, StatusBadge } from "./ui";
 import { computeClientTotals, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney, isOverdue, sortInvoicesRecent, todayIso } from "../lib/invoices";
 import { computeMonthlyOverview } from "../lib/monthly";
 import { buildActivity } from "../lib/activity";
@@ -41,6 +43,8 @@ export default function DashboardClient({
   const [range, setRange] = useState<"all" | "30" | "90">("all");
   const [generating, setGenerating] = useState(false);
   const [generateNote, setGenerateNote] = useState("");
+  const paidLineRef = useRef<SVGPolylineElement>(null);
+  const outstandingLineRef = useRef<SVGPolylineElement>(null);
 
   useEffect(() => {
     fetch("/api/me")
@@ -118,6 +122,39 @@ export default function DashboardClient({
   const chartY = (v: number) => chartTop + (1 - v / monthMax) * (chartH - chartTop - chartBottom);
   const chartPoints = (key: "paid" | "outstanding") =>
     months.map((m, i) => `${chartX(i)},${chartY(m[key])}`).join(" ");
+
+  // The two trend lines draw themselves in when the chart scrolls
+  // into view. Reduced-motion visitors get the finished chart
+  // instantly, and the dash is removed afterwards so the lines
+  // render exactly as before if anything interrupts the tween.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    gsap.registerPlugin(ScrollTrigger);
+    const lines = [paidLineRef.current, outstandingLineRef.current].filter(
+      (line): line is SVGPolylineElement => line !== null,
+    );
+    const ctx = gsap.context(() => {
+      lines.forEach((line) => {
+        const length = line.getTotalLength();
+        if (length === 0) return;
+        gsap.fromTo(
+          line,
+          { strokeDasharray: length, strokeDashoffset: length },
+          {
+            duration: 1.1,
+            ease: "power2.out",
+            onComplete: () => {
+              line.style.strokeDasharray = "none";
+              line.style.strokeDashoffset = "0";
+            },
+            scrollTrigger: { once: true, start: "top 88%", trigger: line },
+            strokeDashoffset: 0,
+          },
+        );
+      });
+    });
+    return () => ctx.revert();
+  }, [range, invoices]);
 
   async function generateDue() {
     if (generating) return;
@@ -199,14 +236,34 @@ export default function DashboardClient({
       />
 
       <div className="stats">
-        <div className="stat" data-reveal><span>Total outstanding</span><strong>{formatMoney(totals.totalOutstanding)}</strong><small>{unpaidCount} unpaid invoice{unpaidCount === 1 ? "" : "s"}</small></div>
         <div className="stat" data-reveal>
-          <span>Total paid</span><strong>{formatMoney(totals.totalPaid)}</strong>
+          <span className="stat-icon"><Wallet aria-hidden="true" size={16} /></span>
+          <span>Total outstanding</span>
+          <strong><CountUp format={formatMoney} value={totals.totalOutstanding} /></strong>
+          <small>{unpaidCount} unpaid invoice{unpaidCount === 1 ? "" : "s"}</small>
+        </div>
+        <div className="stat" data-reveal>
+          <span className="stat-icon success"><Banknote aria-hidden="true" size={16} /></span>
+          <span>Total paid</span>
+          <strong><CountUp format={formatMoney} value={totals.totalPaid} /></strong>
           <DeltaChip delta={paidDelta} />
         </div>
-        <div className="stat" data-reveal><span>Overdue</span><strong>{totals.overdueCount} · {formatMoney(totals.overdueAmount)}</strong><small>Unpaid and past due</small></div>
-        <div className="stat" data-reveal><span>Clients</span><strong>{clients.length}</strong></div>
-        <div className="stat" data-reveal><span>Invoices</span><strong>{invoices.length}</strong></div>
+        <div className="stat" data-reveal>
+          <span className="stat-icon danger"><Clock aria-hidden="true" size={16} /></span>
+          <span>Overdue</span>
+          <strong><CountUp format={formatMoney} value={totals.overdueAmount} /></strong>
+          <small>{totals.overdueCount} overdue invoice{totals.overdueCount === 1 ? "" : "s"} · unpaid and past due</small>
+        </div>
+        <div className="stat" data-reveal>
+          <span className="stat-icon"><Users aria-hidden="true" size={16} /></span>
+          <span>Clients</span>
+          <strong><CountUp format={(n) => String(Math.round(n))} value={clients.length} /></strong>
+        </div>
+        <div className="stat" data-reveal>
+          <span className="stat-icon"><FileText aria-hidden="true" size={16} /></span>
+          <span>Invoices</span>
+          <strong><CountUp format={(n) => String(Math.round(n))} value={invoices.length} /></strong>
+        </div>
       </div>
 
       <div className="card" data-reveal>
@@ -216,8 +273,21 @@ export default function DashboardClient({
         </div>
         <svg aria-label="Paid and outstanding totals by month" role="img" style={{ height: "auto", width: "100%" }} viewBox={`0 0 ${chartW} ${chartH}`}>
           <title>Paid and outstanding totals by month</title>
-          <polyline fill="none" points={chartPoints("paid")} stroke="var(--success)" strokeWidth="2" />
-          <polyline fill="none" points={chartPoints("outstanding")} stroke="var(--primary)" strokeWidth="2" />
+          {/* Faint gridlines at quarter steps, so heights are readable
+              against the scale instead of floating in empty space. */}
+          {[0.25, 0.5, 0.75].map((fraction) => (
+            <line
+              key={fraction}
+              stroke="var(--border)"
+              strokeWidth="1"
+              x1={chartSide}
+              x2={chartW - chartSide}
+              y1={chartY(monthMax * fraction)}
+              y2={chartY(monthMax * fraction)}
+            />
+          ))}
+          <polyline fill="none" points={chartPoints("paid")} ref={paidLineRef} stroke="var(--success)" strokeWidth="2" />
+          <polyline fill="none" points={chartPoints("outstanding")} ref={outstandingLineRef} stroke="var(--primary)" strokeWidth="2" />
           {months.map((m, i) => (
             <g key={m.key}>
               <circle cx={chartX(i)} cy={chartY(m.paid)} fill="var(--success)" r="4" />
@@ -226,6 +296,10 @@ export default function DashboardClient({
             </g>
           ))}
         </svg>
+        <div className="chart-legend">
+          <span><span aria-hidden="true" className="legend-dot" style={{ background: "var(--success)" }} /> Paid</span>
+          <span><span aria-hidden="true" className="legend-dot" style={{ background: "var(--primary)" }} /> Outstanding</span>
+        </div>
         <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
           {months.map((m) => (
             <div key={m.key} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem" }}>
@@ -362,6 +436,7 @@ export default function DashboardClient({
           <EmptyState
             actionHref="/invoices"
             actionLabel="Add your first invoice"
+            icon={<FileText aria-hidden="true" size={22} />}
             text="Invoices you create will show up here, newest first."
             title="No invoices yet"
           />

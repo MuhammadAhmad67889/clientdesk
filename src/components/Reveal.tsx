@@ -23,7 +23,7 @@ export default function Reveal({ children }: { children: React.ReactNode }) {
       // matches twice (a card also marked data-reveal) is still only
       // returned once, so it never gets two animations.
       const select = gsap.utils.selector(ref);
-      select<HTMLElement>(".card, .stat, .auth-box, .preview-card, [data-reveal]").forEach((el, i) => {
+      select<HTMLElement>(".card, .stat, .auth-box, .preview-card, .page-head, [data-reveal]").forEach((el, i) => {
         gsap.from(el, {
           delay: Math.min(i, 4) * 0.03,
           duration: 0.5,

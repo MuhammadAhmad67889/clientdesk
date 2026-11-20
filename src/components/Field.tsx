@@ -20,7 +20,7 @@ export default function Field({
       {label}
       {children}
       {hint && <span className="hint">{hint}</span>}
-      {error && <span className="error">{error}</span>}
+      {error && <span className="error" role="alert">{error}</span>}
     </label>
   );
 }

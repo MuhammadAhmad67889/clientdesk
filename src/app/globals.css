@@ -733,3 +733,176 @@ input::placeholder, textarea::placeholder { color: var(--text-2); opacity: 0.8; 
   .public-hero h1 { font-size: 1.8rem; }
   .public-nav nav { gap: 12px; }
 }
+
+/* ---------- Polish pass (2026-11-20) ----------
+ * Hierarchy, icons, chart legend, usage bars, empty states, and
+ * 44px touch targets on phones. This block sits at the end of the
+ * file on purpose: equal-specificity rules below must win over the
+ * base rules above, and the media query must come after every rule
+ * it overrides. */
+
+/* Selection in the brand soft blue instead of the browser default. */
+::selection { background: var(--primary-soft); }
+
+/* Links styled as buttons need a box that honours min-height and
+ * centres its label — inline anchors ignore both. */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+
+/* Public section headings were stuck at the app-wide 1.05rem h2.
+ * Marketing sections need a real hierarchy step below the hero. */
+.public-wrap section > h2 {
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 44px 0 8px;
+}
+.public-wrap section:not(.final-cta) > p:not(.lead) { color: var(--text-2); max-width: 640px; }
+
+/* Feature cards: a soft-blue icon chip above each title. */
+.feature-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary-text);
+  margin-bottom: 12px;
+}
+.feature-grid h3 { font-size: 1.05rem; }
+.feature-grid .hint { margin-top: 8px; }
+
+/* Steps: numbered circles instead of the browser's plain markers.
+ * Shared by the landing "How it works" list and the dashboard
+ * onboarding card, so both read the same way. */
+.steps { list-style: none; padding-left: 0; counter-reset: step; }
+.steps li { position: relative; padding-left: 44px; counter-increment: step; }
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: -2px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: grid;
+  place-items: center;
+}
+
+/* The landing calculator inputs were raw browser fields — give them
+ * the same treatment as every other input in the app. */
+.calc-row input {
+  font: inherit;
+  font-weight: 400;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  min-height: 42px;
+  width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.calc-row input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* Pricing: the middle tier gets visual emphasis (border + shadow
+ * only — no popularity claims), and feature lists get check marks
+ * instead of default bullets. */
+.price-card.featured { border-color: var(--primary); box-shadow: var(--shadow-lg); }
+.price-card ul { list-style: none; padding-left: 0; }
+.price-card li { position: relative; padding-left: 24px; }
+.price-card li::before {
+  content: "✓";
+  position: absolute;
+  left: 2px;
+  color: var(--primary-text);
+  font-weight: 700;
+}
+
+/* Final CTA sits on the gradient, so its buttons invert: solid
+ * white for the main action, outlined white for the secondary. */
+.final-cta .btn-primary { background: #ffffff; color: #1d4ed8; border-color: #ffffff; box-shadow: none; }
+.final-cta .btn-primary:hover { background: var(--primary-soft); border-color: var(--primary-soft); }
+.final-cta .btn:not(.btn-primary) { background: transparent; color: #ffffff; border-color: rgba(255, 255, 255, 0.55); }
+.final-cta .btn:not(.btn-primary):hover { border-color: #ffffff; }
+
+/* Stat tiles: a small icon chip in the top-right corner. The
+ * selector must outrank `.stat span` above, hence `.stat .stat-icon`. */
+.stat { position: relative; }
+.stat .stat-icon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary-text);
+  font-size: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.stat .stat-icon.success { background: var(--success-soft); color: var(--success); }
+.stat .stat-icon.danger { background: var(--error-soft); color: var(--error); }
+
+/* Chart legend: coloured dots naming each line, so the two series
+ * never have to be guessed from colour alone. */
+.chart-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-size: 0.85rem; color: var(--text-2); }
+.chart-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+/* Settings usage bars: real counts against the free-plan limits. */
+.usage { display: grid; gap: 12px; margin-top: 12px; }
+.usage-row { display: grid; gap: 4px; }
+.usage-label { display: flex; justify-content: space-between; gap: 12px; font-size: 0.85rem; color: var(--text-2); }
+.usage-track { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.usage-fill { height: 100%; border-radius: 999px; background: var(--primary); }
+.usage-fill.full { background: var(--warning); }
+
+/* Empty states: centred, with room to breathe and an optional icon. */
+.empty { text-align: center; padding: 28px 20px; }
+.empty p { max-width: 420px; margin: 4px auto 14px; }
+.empty-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary-text);
+  margin: 0 auto 12px;
+}
+
+/* The active sidebar item gets a left accent bar on top of its
+ * soft background, so the current page reads at a glance. */
+.nav-item.active { box-shadow: inset 3px 0 0 var(--primary); }
+
+/* Auth forms: the submit button spans the form width. */
+.auth-box .actions .primary { flex: 1; }
+
+/* Phones: 44px minimum touch targets (the bottom nav already has
+ * its own 64px bar; these rules cover everything above it). */
+@media (max-width: 760px) {
+  button, .btn { min-height: 44px; }
+  .toolbar input, .toolbar select { min-height: 44px; }
+  form.grid input:not([type="checkbox"]):not([type="radio"]),
+  form.grid select,
+  form.grid textarea { min-height: 44px; }
+  .calc-row input { min-height: 44px; }
+  .icon-btn { width: 44px; height: 44px; }
+  .password-field button { min-height: 34px; }
+  .bottom-nav-item { min-height: 48px; }
+  .nav-item { padding: 11px 10px; }
+  .public-wrap section > h2 { font-size: 1.4rem; margin-top: 36px; }
+}
