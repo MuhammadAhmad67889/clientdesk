@@ -95,11 +95,11 @@ export default function PaymentsClient({
       </div>
 
       <div className="stats">
-        <div className="stat" data-reveal><span>Received</span><strong>{formatMoney(totals.received)}</strong><small>Recorded payments</small></div>
-        <div className="stat" data-reveal><span>Still owed</span><strong>{formatMoney(totals.pending)}</strong><small>Unpaid balances</small></div>
+        <div className="stat glass" data-reveal><span>Received</span><strong className="num">{formatMoney(totals.received)}</strong><small>Recorded payments</small></div>
+        <div className="stat glass" data-reveal><span>Still owed</span><strong className="num">{formatMoney(totals.pending)}</strong><small>Unpaid balances</small></div>
       </div>
 
-      <div className="card" data-reveal>
+      <div className="card glass" data-reveal>
         <h2>Record a payment</h2>
         {unpaid.length === 0 ? (
           <p className="hint">Nothing owed — every invoice is paid in full.</p>
@@ -158,7 +158,7 @@ export default function PaymentsClient({
       </div>
 
       {shown.length === 0 ? (
-        <div className="card" data-reveal>
+        <div className="card glass" data-reveal>
           <p className="hint">Nothing here yet. Recorded payments show under Completed; unpaid balances show under Pending.</p>
         </div>
       ) : (
@@ -171,12 +171,12 @@ export default function PaymentsClient({
                   <td data-label="Date">{row.date}</td>
                   <td data-label="Invoice">{row.invoiceNumber}</td>
                   <td data-label="Client">{row.clientName}</td>
-                  <td data-label="Amount">{formatMoney(row.amount)}</td>
+                  <td className="num" data-label="Amount">{formatMoney(row.amount)}</td>
                   <td data-label="Status">
                     {row.kind === "payment" ? (
-                      <span className="badge badge-paid">Completed</span>
+                      <span className="badge badge-paid badge-glow">Completed</span>
                     ) : (
-                      <span className="badge badge-unpaid">Pending</span>
+                      <span className="badge badge-unpaid badge-glow">Pending</span>
                     )}
                   </td>
                   <td data-label="Details">

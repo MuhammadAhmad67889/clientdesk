@@ -25,7 +25,7 @@ export default function ToastProvider({ children }: { children: React.ReactNode 
       {toasts.length > 0 && (
         <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
           {toasts.map((t) => (
-            <div className="card" key={t.id} role="status" style={{ margin: 0 }}>
+            <div className="card glass glow-soft" key={t.id} role="status" style={{ margin: 0 }}>
               {t.message}
             </div>
           ))}

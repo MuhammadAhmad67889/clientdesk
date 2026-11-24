@@ -67,7 +67,7 @@ export default function DraftInvoicePage({ clients }: { clients: Client[] }) {
 
   return (
     <div>
-      <div className="card">
+      <div className="card glass">
         <h2 style={{ marginTop: 0 }}>Paste the details</h2>
         <p className="hint">
           Example: “Website work for Acme Studio, total $1200, due 2026-12-01.”
@@ -82,7 +82,7 @@ export default function DraftInvoicePage({ clients }: { clients: Client[] }) {
         <button disabled={!text.trim()} onClick={parse} type="button">Parse into a draft</button>
       </div>
       {parsed && (
-        <div className="card">
+        <div className="card glass">
           <h2 style={{ marginTop: 0 }}>Draft — check every field</h2>
           <label>
             Client

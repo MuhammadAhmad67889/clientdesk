@@ -23,7 +23,7 @@ export default function InvoiceCalculator() {
   const total = totalForAmount(base, parsed(discount), parsed(tax));
 
   return (
-    <div className="card">
+    <div className="card glass">
       <div className="calc-row">
         <label>Amount ($)
           <input inputMode="decimal" onChange={(e) => setAmount(e.target.value)} type="number" value={amount} />
@@ -36,10 +36,10 @@ export default function InvoiceCalculator() {
         </label>
       </div>
       <div style={{ display: "grid", gap: 6, marginTop: 16, fontSize: "0.92rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><span>{formatMoney(base)}</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Discount</span><span>−{formatMoney(discountAmount)}</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Tax</span><span>+{formatMoney(taxAmount)}</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}><span>Total due</span><span>{formatMoney(total)}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><span className="num">{formatMoney(base)}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Discount</span><span className="num">−{formatMoney(discountAmount)}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Tax</span><span className="num">+{formatMoney(taxAmount)}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}><span>Total due</span><span className="num gradient-num">{formatMoney(total)}</span></div>
       </div>
       <p className="hint" style={{ marginBottom: 0 }}>Same math the app uses on every invoice — discount first, then tax on what&apos;s left.</p>
     </div>

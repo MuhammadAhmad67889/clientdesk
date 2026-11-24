@@ -25,7 +25,7 @@ export default function BusinessNameForm({ initialName }: { initialName: string 
   }
 
   return (
-    <form className="card grid" onSubmit={submit}>
+    <form className="card glass grid" onSubmit={submit}>
       <h2 className="full" style={{ margin: 0 }}>Business name</h2>
       <p className="hint full" style={{ margin: 0 }}>
         Optional. Shown at the top of invoice PDFs. Leave it blank to use no business name.

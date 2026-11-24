@@ -3,13 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatMoney } from "../lib/invoices";
-
-/** A fresh idempotency key per form, so a double-click on submit
- * returns the first payment instead of recording it twice. */
-function newIdempotencyKey(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
-  return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-}
+import { newIdempotencyKey } from "../lib/payments";
 
 export default function RecordPaymentForm({
   balance,
@@ -69,7 +63,7 @@ export default function RecordPaymentForm({
 
   return (
     <form className="grid" onSubmit={submit}>
-      <p className="hint full" style={{ margin: 0 }}>Remaining balance: <strong>{formatMoney(balance)}</strong></p>
+      <p className="hint full" style={{ margin: 0 }}>Remaining balance: <strong className="num">{formatMoney(balance)}</strong></p>
       <label>Payment amount ($) *
         <input type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100.00" />
       </label>

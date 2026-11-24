@@ -30,7 +30,14 @@ export default function AuthShell({
           {switchNode}
         </div>
       </div>
-      <aside className="auth-preview" aria-hidden="true">
+      <aside
+        aria-hidden="true"
+        className="auth-preview"
+        style={{
+          background:
+            "radial-gradient(480px 260px at 85% 0%, rgba(124, 58, 237, 0.22), transparent 60%), radial-gradient(420px 240px at 0% 100%, rgba(37, 99, 235, 0.18), transparent 60%), linear-gradient(160deg, #070b16 0%, #0d1526 55%, #1e1b4b 100%)",
+        }}
+      >
         <ThreeScene />
         <h2>Clients and invoices, without the spreadsheet chaos.</h2>
         <p>ClientDesk is a freelance client and invoice manager built for people who bill real work.</p>
@@ -40,7 +47,7 @@ export default function AuthShell({
           <li>Export invoices to CSV and print them when you need to</li>
           <li>Your data stays private to your account</li>
         </ul>
-        <div className="preview-card">
+        <div className="preview-card glow-soft">
           <strong>Overview</strong>
           <span>Outstanding, paid, and overdue totals — plus the invoices that need your attention first.</span>
         </div>

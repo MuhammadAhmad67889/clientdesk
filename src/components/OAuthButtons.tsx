@@ -19,12 +19,12 @@ export default function OAuthButtons() {
     <div>
       <div className="actions full" style={{ display: "grid", gap: 8 }}>
         {providers.google && (
-          <a className="btn" href="/api/auth/oauth/google/start" style={{ textAlign: "center" }}>
+          <a className="btn glow-soft" href="/api/auth/oauth/google/start" style={{ textAlign: "center" }}>
             Continue with Google
           </a>
         )}
         {providers.github && (
-          <a className="btn" href="/api/auth/oauth/github/start" style={{ textAlign: "center" }}>
+          <a className="btn glow-soft" href="/api/auth/oauth/github/start" style={{ textAlign: "center" }}>
             Continue with GitHub
           </a>
         )}

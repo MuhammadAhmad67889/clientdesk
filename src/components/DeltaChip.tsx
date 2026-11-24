@@ -5,7 +5,7 @@ import type { Delta } from "../lib/analytics";
  * the same change never renders two different ways. */
 export default function DeltaChip({ delta }: { delta: Delta }) {
   return (
-    <small className={`delta delta-${delta.direction}`}>
+    <small className={`delta delta-${delta.direction} badge-glow`}>
       {delta.direction === "up" && <TrendingUp aria-hidden="true" className="icon-inline" size={14} />}
       {delta.direction === "down" && <TrendingDown aria-hidden="true" className="icon-inline" size={14} />}
       {delta.direction === "flat" && <Minus aria-hidden="true" className="icon-inline" size={14} />}

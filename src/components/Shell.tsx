@@ -100,9 +100,17 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       {mobileOpen && (
         <button aria-label="Close navigation menu" className="sidebar-backdrop" onClick={() => setMobileOpen(false)} type="button" />
       )}
-      <aside className={`sidebar${collapsed ? " collapsed" : ""}${mobileOpen ? " open" : ""}`}>
+      {/* transition-[width]: the collapse animates the width the
+       * .collapsed class sets. On phones the media-query rule owns
+       * the transition instead (drawer slide), so this only fires
+       * on desktop. The glass class is scoped to the open mobile
+       * drawer: on desktop the sidebar keeps its solid surface. */}
+      <aside className={`sidebar transition-[width] duration-300${collapsed ? " collapsed" : ""}${mobileOpen ? " open glass" : ""}`}>
         <Link className="brand" href="/" onClick={() => setMobileOpen(false)}>
-          <span className="brand-mark">C</span>
+          {/* The one sparing glow accent in the shell: the topbar's
+           * own shadow beats the shadow-glow utility, so the brand
+           * mark carries the glow instead. */}
+          <span className="brand-mark glow">C</span>
           <span className="brand-text">ClientDesk</span>
         </Link>
         <span className="sidebar-section">Workspace</span>
@@ -183,7 +191,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </header>
         <main className="content">{children}</main>
       </div>
-      <nav aria-label="Quick navigation" className="bottom-nav">
+      {/* Glass bar on phones; display: none on desktop, so this
+       * changes nothing there. */}
+      <nav aria-label="Quick navigation" className="bottom-nav glass">
         {bottomNav.map((item) => (
           <Link
             aria-current={pathname === item.href ? "page" : undefined}

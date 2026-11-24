@@ -40,7 +40,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
     );
   }
   return (
-    <form className="card grid" onSubmit={submit}>
+    <form className="card glass grid" onSubmit={submit}>
       <label className="full">New password (at least 8 characters)
         <span className="password-field">
           <input

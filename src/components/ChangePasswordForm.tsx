@@ -48,7 +48,7 @@ export default function ChangePasswordForm() {
   }
 
   return (
-    <form className="card grid" onSubmit={submit}>
+    <form className="card glass grid" onSubmit={submit}>
       <h2 className="full" style={{ margin: 0 }}>Change password</h2>
       <p className="hint full" style={{ margin: 0 }}>
         Changing your password signs you out on your other devices, but keeps this session working.

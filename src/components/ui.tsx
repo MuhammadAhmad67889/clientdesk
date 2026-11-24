@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 
 export function StatusBadge({ status }: { status: "paid" | "unpaid" | "overdue" }) {
   const label = status === "paid" ? "Paid" : status === "overdue" ? "Overdue" : "Unpaid";
-  return <span className={`badge badge-${status}`}>{label}</span>;
+  return <span className={`badge badge-${status} badge-glow`}>{label}</span>;
 }
 
 export function EmptyState({
@@ -90,5 +90,6 @@ export function CountUp({
     };
   }, [value]);
 
-  return <span ref={ref}>{format(value)}</span>;
+  // Tabular numerals, so money totals don't wobble as they count.
+  return <span className="num" ref={ref}>{format(value)}</span>;
 }

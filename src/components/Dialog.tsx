@@ -28,7 +28,7 @@ export default function Dialog({
   if (!open) return null;
   return (
     <div className="dialog-backdrop" onClick={onClose} role="presentation">
-      <div aria-label={title} aria-modal="true" className="dialog" onClick={(e) => e.stopPropagation()} role="dialog">
+      <div aria-label={title} aria-modal="true" className="dialog glass" onClick={(e) => e.stopPropagation()} role="dialog">
         <h2 style={{ marginTop: 0 }}>{title}</h2>
         {children}
       </div>

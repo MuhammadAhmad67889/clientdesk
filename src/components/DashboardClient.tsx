@@ -10,9 +10,10 @@ import OnboardingCard from "./OnboardingCard";
 import Reveal from "./Reveal";
 import { ConfirmDialog } from "./Dialog";
 import { CountUp, EmptyState, StatusBadge } from "./ui";
+import ActivityFeed from "./ActivityFeed";
+import type { AuditEntry } from "../lib/audit";
 import { computeClientTotals, computeInvoiceTotal, computeRemainingBalance, formatInvoiceNumber, formatMoney, isOverdue, sortInvoicesRecent, todayIso } from "../lib/invoices";
 import { computeMonthlyOverview } from "../lib/monthly";
-import { buildActivity } from "../lib/activity";
 import { rankClientsByOutstanding, summarizeMonth } from "../lib/drafts";
 import { deltaVsPrevious, monthKey, previousMonthKey, sumPaidByMonth } from "../lib/analytics";
 import type { Client, Invoice, Payment } from "../lib/types";
@@ -25,10 +26,12 @@ function cutoffFor(today: string, days: number): string {
 }
 
 export default function DashboardClient({
+  initialAudit,
   initialClients,
   initialInvoices,
   initialPayments,
 }: {
+  initialAudit: AuditEntry[];
   initialClients: Client[];
   initialInvoices: Invoice[];
   initialPayments: Payment[];
@@ -107,7 +110,6 @@ export default function DashboardClient({
     .filter((inv) => (balanceByInvoice.get(inv.id) ?? computeInvoiceTotal(inv)) > 0)
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
     .slice(0, 5);
-  const activity = buildActivity(clients, invoices, payments);
   // Revenue trend: two SVG lines from the real monthly totals —
   // paid and outstanding — with the exact figures listed below.
   const months = computeMonthlyOverview(rangeInvoices);
@@ -236,33 +238,33 @@ export default function DashboardClient({
       />
 
       <div className="stats">
-        <div className="stat" data-reveal>
+        <div className="stat glass" data-reveal>
           <span className="stat-icon"><Wallet aria-hidden="true" size={16} /></span>
-          <span>Total outstanding</span>
-          <strong><CountUp format={formatMoney} value={totals.totalOutstanding} /></strong>
+          <span className="micro-label">Total outstanding</span>
+          <strong className="num gradient-num"><CountUp format={formatMoney} value={totals.totalOutstanding} /></strong>
           <small>{unpaidCount} unpaid invoice{unpaidCount === 1 ? "" : "s"}</small>
         </div>
-        <div className="stat" data-reveal>
+        <div className="stat glass" data-reveal>
           <span className="stat-icon success"><Banknote aria-hidden="true" size={16} /></span>
-          <span>Total paid</span>
-          <strong><CountUp format={formatMoney} value={totals.totalPaid} /></strong>
+          <span className="micro-label">Total paid</span>
+          <strong className="num"><CountUp format={formatMoney} value={totals.totalPaid} /></strong>
           <DeltaChip delta={paidDelta} />
         </div>
-        <div className="stat" data-reveal>
+        <div className="stat glass" data-reveal>
           <span className="stat-icon danger"><Clock aria-hidden="true" size={16} /></span>
-          <span>Overdue</span>
-          <strong><CountUp format={formatMoney} value={totals.overdueAmount} /></strong>
+          <span className="micro-label">Overdue</span>
+          <strong className="num"><CountUp format={formatMoney} value={totals.overdueAmount} /></strong>
           <small>{totals.overdueCount} overdue invoice{totals.overdueCount === 1 ? "" : "s"} · unpaid and past due</small>
         </div>
-        <div className="stat" data-reveal>
+        <div className="stat glass" data-reveal>
           <span className="stat-icon"><Users aria-hidden="true" size={16} /></span>
-          <span>Clients</span>
-          <strong><CountUp format={(n) => String(Math.round(n))} value={clients.length} /></strong>
+          <span className="micro-label">Clients</span>
+          <strong className="num"><CountUp format={(n) => String(Math.round(n))} value={clients.length} /></strong>
         </div>
-        <div className="stat" data-reveal>
+        <div className="stat glass" data-reveal>
           <span className="stat-icon"><FileText aria-hidden="true" size={16} /></span>
-          <span>Invoices</span>
-          <strong><CountUp format={(n) => String(Math.round(n))} value={invoices.length} /></strong>
+          <span className="micro-label">Invoices</span>
+          <strong className="num"><CountUp format={(n) => String(Math.round(n))} value={invoices.length} /></strong>
         </div>
       </div>
 
@@ -396,36 +398,24 @@ export default function DashboardClient({
             <p className="hint" style={{ marginBottom: 0 }}>Nothing outstanding.</p>
           ) : (
             <ul className="attention-list">
-              {rankedClients.map(({ client, outstanding }) => (
-                <li key={client.id}>
-                  <Link href="/clients">{client.name}</Link>
-                  <span><strong>{formatMoney(outstanding)}</strong></span>
-                </li>
-              ))}
+              {rankedClients.map(({ client, outstanding }) => {
+                const mine = invoices.filter((i) => i.clientId === client.id);
+                const mineIds = new Set(mine.map((i) => i.id));
+                const paid = computeClientTotals(mine, payments.filter((p) => mineIds.has(p.invoiceId)), today).totalPaid;
+                return (
+                  <li key={client.id}>
+                    <Link href={`/clients/${client.id}`}>{client.name}</Link>
+                    <span>Paid <strong className="num">{formatMoney(paid)}</strong> · Outstanding <strong className="num">{formatMoney(outstanding)}</strong></span>
+                  </li>
+                );
+              })}
             </ul>
           )}
           <p className="hint" style={{ marginBottom: 0 }}>Sorted by outstanding amount, largest first. This is a sort, not a risk prediction.</p>
         </div>
       </div>
 
-      <div className="card" data-reveal>
-        <div className="card-head">
-          <h2>Recent activity</h2>
-          <p>From your real clients, invoices, and payments</p>
-        </div>
-        {activity.length === 0 ? (
-          <p className="hint">Nothing yet.</p>
-        ) : (
-          <ul className="attention-list">
-            {activity.map((a, i) => (
-              <li key={`${a.date}-${i}`}>
-                <span>{a.text}</span>
-                <span>{a.date}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <ActivityFeed entries={initialAudit} />
 
       <div className="card" data-reveal>
         <div className="card-head">

@@ -40,7 +40,7 @@ export default function ReminderDraft({
 
   if (balance <= 0) return null;
   return (
-    <div className="card" data-reveal>
+    <div className="card glass" data-reveal>
       <h2 style={{ marginTop: 0 }}>Reminder draft</h2>
       <p className="hint">
         A fixed template with this invoice&apos;s real figures — not AI

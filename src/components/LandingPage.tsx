@@ -138,7 +138,13 @@ export default function LandingPage() {
     <div className="public-wrap">
       <PublicNav />
       <main>
-        <section className="public-hero">
+        <section
+          className="public-hero"
+          style={{
+            background:
+              "radial-gradient(640px 320px at 75% 0%, var(--primary-soft), transparent 65%), radial-gradient(520px 260px at 8% 25%, var(--aurora-2), transparent 60%)",
+          }}
+        >
           <h1 data-reveal>Freelance clients and invoices, <span className="gradient-text">without the spreadsheet.</span></h1>
           <p className="lead" data-reveal>
             ClientDesk keeps your clients, invoices, and payments in one
@@ -169,7 +175,7 @@ export default function LandingPage() {
           <h2>Everything you need to manage your freelance business</h2>
           <div className="feature-grid">
             {features.map((f) => (
-              <article className="card" key={f.title}>
+              <article className="card glass" key={f.title}>
                 <span className="feature-icon"><f.icon aria-hidden="true" size={20} /></span>
                 <h3>{f.title}</h3>
                 <p>{f.text}</p>
@@ -202,9 +208,9 @@ export default function LandingPage() {
           <h2>Plans that fit your freelance journey</h2>
           <div className="price-grid">
             {tiers.map((tier) => (
-              <article className={`card price-card${tier.name === "Pro" ? " featured" : ""}`} key={tier.name}>
+              <article className={`card glass price-card${tier.name === "Pro" ? " featured gradient-border" : ""}`} key={tier.name}>
                 <h3>{tier.name}</h3>
-                <p className="price">{tier.price}</p>
+                <p className="price num">{tier.price}</p>
                 <p>{tier.note}</p>
                 <ul>
                   {tier.features.map((f) => (
@@ -226,7 +232,7 @@ export default function LandingPage() {
           <h2>Frequently asked questions</h2>
           <div className="faq">
             {faqs.map((f) => (
-              <details key={f.question}>
+              <details className="glass" key={f.question}>
                 <summary>{f.question}</summary>
                 <p>{f.answer}</p>
               </details>

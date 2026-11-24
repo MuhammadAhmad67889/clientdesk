@@ -26,8 +26,8 @@ export default function MonthlyBars({ months }: { months: MonthRow[] }) {
   return (
     <div>
       <div style={{ display: "flex", gap: 16, fontSize: "0.85rem", marginBottom: 12 }}>
-        <span><span aria-hidden="true" style={{ color: "var(--primary)" }}>■ </span>Billed</span>
-        <span><span aria-hidden="true" style={{ color: "var(--success)" }}>■ </span>Paid</span>
+        <span><span aria-hidden="true" style={{ color: "#60a5fa" }}>■ </span>Billed</span>
+        <span><span aria-hidden="true" style={{ color: "#7c3aed" }}>■ </span>Paid</span>
       </div>
       {hasData ? (
         <>
@@ -55,8 +55,11 @@ export default function MonthlyBars({ months }: { months: MonthRow[] }) {
                   onMouseLeave={() => setHovered(null)}
                   style={{ cursor: "pointer" }}
                 >
-                  <rect fill="var(--primary)" height={barH(m.billed)} width="14" x={x} y={plotH - barH(m.billed)} rx="2" />
-                  <rect fill="var(--success)" height={barH(m.paid)} width="14" x={x + 18} y={plotH - barH(m.paid)} rx="2" />
+                  {/* Billed in electric blue, paid in violet — the new
+                      palette. No animation here yet: the bars render at
+                      full height, so nothing is hidden if JS stalls. */}
+                  <rect fill="#60a5fa" height={barH(m.billed)} width="14" x={x} y={plotH - barH(m.billed)} rx="2" />
+                  <rect fill="#7c3aed" height={barH(m.paid)} width="14" x={x + 18} y={plotH - barH(m.paid)} rx="2" />
                   <text fill="var(--text-2)" fontSize="11" textAnchor="middle" x={x + 16} y={chartH - 8}>{m.label}</text>
                 </g>
               );

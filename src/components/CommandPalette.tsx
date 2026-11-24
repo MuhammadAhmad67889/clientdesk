@@ -86,7 +86,7 @@ export default function CommandPalette({ onClose, open }: { onClose: () => void;
     <div className="cmd-backdrop" onClick={onClose} role="presentation">
       <div
         aria-label="Command palette"
-        className="cmd-box"
+        className="cmd-box glass"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
       >
@@ -103,7 +103,7 @@ export default function CommandPalette({ onClose, open }: { onClose: () => void;
           {items.map((item, i) => (
             <li key={item.id}>
               <button
-                className={i === selected ? "selected" : ""}
+                className={i === selected ? "selected glow-soft" : ""}
                 onClick={item.run}
                 onMouseEnter={() => setSelected(i)}
                 type="button"

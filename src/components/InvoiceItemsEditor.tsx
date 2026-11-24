@@ -17,7 +17,7 @@ export default function InvoiceItemsEditor({
     onChange(items.map((it, i) => (i === index ? { ...it, ...patch } : it)));
   }
   return (
-    <div className="full" style={{ display: "grid", gap: 8 }}>
+    <div className="full card glass" style={{ display: "grid", gap: 8 }}>
       {items.map((it, i) => (
         <div key={i} className="item-row">
           <label>Description
@@ -48,7 +48,7 @@ export default function InvoiceItemsEditor({
       ))}
       <div className="actions">
         <button onClick={() => onChange([...items, { description: "", quantity: 1, unitPrice: 0 }])} type="button">Add line item</button>
-        <span className="hint">Subtotal: <strong>{formatMoney(computeItemsSubtotal(items))}</strong> — discount and tax apply to this, as with a single amount.</span>
+        <span className="hint">Subtotal: <strong className="num">{formatMoney(computeItemsSubtotal(items))}</strong> — discount and tax apply to this, as with a single amount.</span>
       </div>
     </div>
   );

@@ -7,8 +7,10 @@ import type { StatusSlice } from "../lib/analytics";
 const COLORS: Record<StatusSlice["key"], string> = {
   overdue: "var(--error)",
   paid: "var(--success)",
-  partial: "var(--primary)",
-  unpaid: "var(--text-2)",
+  // Partly paid and unpaid take the new palette: electric blue and
+  // violet. Overdue and paid keep red/green so state still reads.
+  partial: "#60a5fa",
+  unpaid: "#7c3aed",
 };
 
 const LABELS: Record<StatusSlice["key"], string> = {

@@ -101,7 +101,7 @@ export default function ThreeScene() {
   }, []);
 
   if (failed) return null;
-  return <div ref={hostRef} aria-hidden="true" className="three-scene" data-reveal />;
+  return <div ref={hostRef} aria-hidden="true" className="three-scene glow-soft" data-reveal />;
 }
 
 /** Random points in a shell around the shape, so it reads as depth. */

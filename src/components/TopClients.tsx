@@ -12,10 +12,14 @@ export default function TopClients({ rows }: { rows: ClientRow[] }) {
         <p className="hint" style={{ margin: 0 }}>No clients with invoices yet.</p>
       ) : (
         <ul className="top-clients" style={{ display: "grid", gap: 14, listStyle: "none", margin: 0, padding: 0 }}>
-          {rows.map((r) => (
+          {rows.map((r, i) => (
             <li key={r.id}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
-                <strong>{r.name}</strong>
+                <strong>
+                  {/* Rank numeral, tabular so the column stays aligned. */}
+                  <span className="num" style={{ color: "var(--text-2)", marginRight: 8 }}>{i + 1}.</span>
+                  {r.name}
+                </strong>
                 <span style={{ color: "var(--text-2)" }}>
                   Billed {formatMoney(r.billed)} · Paid {formatMoney(r.paid)} · Owes {formatMoney(r.outstanding)}
                 </span>

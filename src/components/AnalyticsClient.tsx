@@ -69,33 +69,33 @@ export default function AnalyticsClient({
       </div>
 
       <div className="stats">
-        <div className="stat" data-reveal>
+        <div className="stat glass" data-reveal>
           <span className="stat-icon"><ReceiptText aria-hidden="true" size={16} /></span>
-          <span>Billed this month</span>
-          <strong><CountUp format={formatMoney} value={billedByMonth.get(thisMonthKey) ?? 0} /></strong>
+          <span className="micro-label">Billed this month</span>
+          <strong className="num"><CountUp format={formatMoney} value={billedByMonth.get(thisMonthKey) ?? 0} /></strong>
           <DeltaChip delta={billedDelta} />
         </div>
-        <div className="stat" data-reveal>
+        <div className="stat glass" data-reveal>
           <span className="stat-icon success"><Banknote aria-hidden="true" size={16} /></span>
-          <span>Paid this month</span>
-          <strong><CountUp format={formatMoney} value={paidByMonth.get(thisMonthKey) ?? 0} /></strong>
+          <span className="micro-label">Paid this month</span>
+          <strong className="num"><CountUp format={formatMoney} value={paidByMonth.get(thisMonthKey) ?? 0} /></strong>
           <DeltaChip delta={paidDelta} />
         </div>
-        <div className="stat" data-reveal>
+        <div className="stat glass" data-reveal>
           <span className="stat-icon"><FileText aria-hidden="true" size={16} /></span>
-          <span>Issued this month</span>
-          <strong><CountUp format={(n) => String(Math.round(n))} value={issuedThisMonth.length} /></strong>
+          <span className="micro-label">Issued this month</span>
+          <strong className="num"><CountUp format={(n) => String(Math.round(n))} value={issuedThisMonth.length} /></strong>
           <small>{issuedThisMonth.length === 1 ? "invoice" : "invoices"}</small>
         </div>
-        <div className="stat" data-reveal>
+        <div className="stat glass" data-reveal>
           <span className="stat-icon"><Percent aria-hidden="true" size={16} /></span>
-          <span>Collection rate</span>
-          <strong>{rate === null ? "—" : <CountUp format={(n) => `${Math.round(n)}%`} value={rate} />}</strong>
+          <span className="micro-label">Collection rate</span>
+          <strong className="num">{rate === null ? "—" : <CountUp format={(n) => `${Math.round(n)}%`} value={rate} />}</strong>
           <small>{rate === null ? "Nothing billed yet" : "Paid share of all billed money"}</small>
         </div>
       </div>
 
-      <div className="card" data-reveal>
+      <div className="card glass" data-reveal>
         <div className="card-head">
           <h2>Billed vs paid</h2>
           <div style={{ display: "flex", gap: 6 }} role="group" aria-label="Months shown">
@@ -110,26 +110,26 @@ export default function AnalyticsClient({
         <MonthlyBars months={months} />
       </div>
 
-      <div className="card" data-reveal>
+      <div className="card glass" data-reveal>
         <div className="card-head">
           <h2>Invoice status</h2>
-          <p>By invoice total, so the slices add up to total billed</p>
+          <p className="micro-label">By invoice total, so the slices add up to total billed</p>
         </div>
         <StatusDonut slices={statuses} />
       </div>
 
-      <div className="card" data-reveal>
+      <div className="card glass" data-reveal>
         <div className="card-head">
           <h2>Top clients</h2>
-          <p>By billed total, highest first</p>
+          <p className="micro-label">By billed total, highest first</p>
         </div>
         <TopClients rows={clients} />
       </div>
 
-      <div className="card" data-reveal>
+      <div className="card glass" data-reveal>
         <div className="card-head">
           <h2>This quarter ({quarter.key})</h2>
-          <p>{quarter.start} to {quarter.end}</p>
+          <p className="micro-label">{quarter.start} to {quarter.end}</p>
         </div>
         <p style={{ margin: 0 }}>
           Billed {formatMoney(quarterTotals.billed)} · Paid {formatMoney(quarterTotals.paid)} · Outstanding {formatMoney(quarterTotals.outstanding)}
@@ -139,10 +139,10 @@ export default function AnalyticsClient({
         </p>
       </div>
 
-      <div className="card table-wrap" data-reveal>
+      <div className="card glass table-wrap" data-reveal>
         <div className="card-head">
           <h2>Last {range} months</h2>
-          <p>Billed by issued month · paid by payment month</p>
+          <p className="micro-label">Billed by issued month · paid by payment month</p>
         </div>
         <table>
           <thead><tr><th>Month</th><th>Billed</th><th>Paid</th><th>Outstanding</th></tr></thead>

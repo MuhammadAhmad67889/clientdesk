@@ -179,7 +179,7 @@ export default function ClientsClient({
         <p className="lead">{activeCount} active client{activeCount === 1 ? "" : "s"}{archivedCount > 0 ? ` · ${archivedCount} archived` : ""}. Deleting a client also deletes its invoices.</p>
       </div>
 
-      <form className="card grid" data-reveal onSubmit={submit}>
+      <form className="card glass grid" data-reveal onSubmit={submit}>
         <h2 className="full" style={{ margin: 0 }}>{editing ? "Edit client" : "Add client"}</h2>
         <label>Name *
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Sara Khan" />
@@ -206,7 +206,7 @@ export default function ClientsClient({
         </div>
       </form>
 
-      <div className="card" data-reveal>
+      <div className="card glass" data-reveal>
         <h2>Import clients from CSV</h2>
         <p className="hint" style={{ margin: "4px 0 12px" }}>
           Header row with at least <code>name</code>, plus any of <code>email</code>, <code>company</code>, <code>phone</code>, <code>notes</code>.
@@ -279,7 +279,7 @@ export default function ClientsClient({
                   <td data-label="Email">{c.email ?? "—"}</td>
                   <td data-label="Company">{c.company ?? "—"}</td>
                   <td data-label="Phone">{c.phone ?? "—"}</td>
-                  <td data-label="Outstanding">{formatMoney(outstanding[c.id] ?? 0)}</td>
+                  <td className="num" data-label="Outstanding">{formatMoney(outstanding[c.id] ?? 0)}</td>
                   <td data-label="Actions">
                     <div className="actions">
                       <button onClick={() => startEdit(c)}>Edit</button>

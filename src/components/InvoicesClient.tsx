@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { Search, Users } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Reveal from "./Reveal";
+import ReminderDraft from "./ReminderDraft";
 import { EmptyState, StatusBadge } from "./ui";
 import Pagination, { PAGE_SIZE } from "./Pagination";
 import InvoiceItemsEditor from "./InvoiceItemsEditor";
 import { invoicesToCsv } from "../lib/csv";
-import { computeInvoiceTotal, computeItemsSubtotal, filterInvoices, formatInvoiceNumber, formatMoney, isOverdue, todayIso, validateInvoiceItems } from "../lib/invoices";
+import { computeAmountPaid, computeInvoiceTotal, computeItemsSubtotal, computeRemainingBalance, filterInvoices, formatInvoiceNumber, formatMoney, isOverdue, todayIso, validateInvoiceItems } from "../lib/invoices";
+import { newIdempotencyKey, remainingByInvoice } from "../lib/payments";
+import { recurringDueLabel } from "../lib/recurring";
 import type { InvoiceItemInput } from "../lib/invoices";
 import type { Client, Invoice, InvoiceFilter, Payment, RecurringTemplate } from "../lib/types";
 import { validateInvoice } from "../lib/validation";
@@ -28,7 +31,7 @@ export default function InvoicesClient({
 }) {
   const [clients] = useState(initialClients);
   const [invoices, setInvoices] = useState(initialInvoices);
-  const [payments] = useState(initialPayments);
+  const [payments, setPayments] = useState(initialPayments);
   const [recurring, setRecurring] = useState(initialRecurring);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<InvoiceFilter>("all");
@@ -57,6 +60,18 @@ export default function InvoicesClient({
   const [rErrors, setRErrors] = useState<Record<string, string>>({});
   const [rNote, setRNote] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  // Quick record-payment form, opened from one invoice row at a time.
+  const [payForId, setPayForId] = useState<string | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payDate, setPayDate] = useState("");
+  const [payMethod, setPayMethod] = useState("");
+  const [payReference, setPayReference] = useState("");
+  const [payError, setPayError] = useState("");
+  const [paySaving, setPaySaving] = useState(false);
+  // Reminder draft, opened from one overdue row at a time. The draft
+  // itself is never sent — it is copied into the user's own email.
+  const [remindForId, setRemindForId] = useState<string | null>(null);
 
   const today = todayIso();
   const filtered = useMemo(() => {
@@ -68,6 +83,9 @@ export default function InvoicesClient({
     return sorted;
   }, [invoices, clients, query, filter, sort, today, dueFrom, dueTo]);
   const byId = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
+  // What is still owed per invoice, so the quick payment form can
+  // prefill the remaining balance and the list can hide it at zero.
+  const remaining = useMemo(() => remainingByInvoice(invoices, payments), [invoices, payments]);
   // Archived clients keep their history, but new invoices and
   // retainers are only offered for active clients.
   const activeClients = useMemo(() => clients.filter((c) => !c.archived), [clients]);
@@ -220,6 +238,73 @@ export default function InvoicesClient({
     setRNote(data.created === 0 ? "Nothing due today." : `Generated ${data.created} invoice${data.created === 1 ? "" : "s"}.`);
   }
 
+  async function generateOne(id: string) {
+    if (generatingId) return;
+    setGeneratingId(id);
+    const res = await fetch(`/api/recurring/${id}/generate`, { method: "POST" });
+    setGeneratingId(null);
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { errors?: { form?: string } } | null;
+      setRNote(data?.errors?.form ?? "Could not generate that invoice.");
+      return;
+    }
+    const [invRes, recRes] = await Promise.all([fetch("/api/invoices"), fetch("/api/recurring")]);
+    if (invRes.ok) setInvoices((await invRes.json()) as Invoice[]);
+    if (recRes.ok) setRecurring((await recRes.json()) as RecurringTemplate[]);
+    setRNote("Invoice generated from the template.");
+  }
+
+  function openPay(inv: Invoice) {
+    setPayForId(inv.id);
+    setPayAmount(String(remaining.get(inv.id) ?? computeRemainingBalance(inv, payments.filter((p) => p.invoiceId === inv.id))));
+    setPayDate(today);
+    setPayMethod("");
+    setPayReference("");
+    setPayError("");
+  }
+
+  async function submitPay(e: React.FormEvent, inv: Invoice) {
+    e.preventDefault();
+    if (paySaving) return;
+    setPaySaving(true);
+    setPayError("");
+    const res = await fetch(`/api/invoices/${inv.id}/payments`, {
+      body: JSON.stringify({
+        amount: Number(payAmount),
+        idempotencyKey: newIdempotencyKey(),
+        method: payMethod.trim() || undefined,
+        paidAt: payDate || undefined,
+        reference: payReference.trim() || undefined,
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+    setPaySaving(false);
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { errors?: Record<string, string>; error?: string } | null;
+      setPayError(data?.errors?.amount ?? data?.errors?.paidAt ?? data?.errors?.form ?? data?.error ?? "Could not record the payment.");
+      return;
+    }
+    const saved = (await res.json()) as Payment;
+    setPayments((prev) => [...prev, saved]);
+    // The server flips the invoice to paid when the balance hits
+    // zero; mirror that here so the row updates without a reload.
+    const paidSoFar = computeAmountPaid(payments.filter((p) => p.invoiceId === inv.id)) + saved.amount;
+    if (paidSoFar >= computeInvoiceTotal(inv) - 0.001) {
+      setInvoices((prev) => prev.map((i) => (i.id === inv.id ? { ...i, status: "paid" } : i)));
+    }
+    setPayForId(null);
+    setSavedNote(`Payment of ${formatMoney(saved.amount)} recorded for ${formatInvoiceNumber(inv.number)}.`);
+  }
+
   function exportCsv() {
     const csv = invoicesToCsv(filtered, clients, today, payments);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -249,7 +334,7 @@ export default function InvoicesClient({
           title="Add a client first"
         />
       ) : (
-        <form className="card grid" data-reveal onSubmit={submit}>
+        <form className="card glass grid" data-reveal onSubmit={submit}>
           <h2 className="full" style={{ margin: 0 }}>Add invoice</h2>
           <p className="hint full" style={{ margin: 0 }}>Have the details as free text instead? <Link href="/invoices/draft">Draft an invoice from text</Link> — the draft stays editable until you create it.</p>
           <label className="full">Client *
@@ -293,12 +378,13 @@ export default function InvoicesClient({
         </form>
       )}
 
-      <div className="card" data-reveal>
+      <div className="card glass" data-reveal>
         <h2 style={{ marginTop: 0 }}>Recurring invoices</h2>
         <p className="hint" style={{ marginTop: 0 }}>
           A monthly retainer: one invoice is generated when its due date arrives, then the
           next due date moves one month on. Nothing is generated automatically in the
-          background — press “Generate due now” and only due templates produce an invoice.
+          background — press “Generate due now” for everything due, or “Generate now”
+          on one template to make its invoice early.
         </p>
         <form className="grid" onSubmit={submitRecurring}>
           <label className="full">Client *
@@ -336,12 +422,39 @@ export default function InvoicesClient({
         </form>
         {recurring.length > 0 && (
           <div style={{ marginTop: 16 }}>
-            {recurring.map((t) => (
-              <p key={t.id} style={{ margin: "8px 0" }}>
-                {t.description} — {byId.get(t.clientId)?.name ?? "Unknown client"} · {formatMoney(computeInvoiceTotal({ ...t, dueDate: t.nextDueDate, id: t.id, issuedDate: today, number: null, status: "unpaid" }))} · next due {t.nextDueDate}{" "}
-                <button onClick={() => stopRecurring(t.id)} type="button">Stop</button>
-              </p>
-            ))}
+            <div className="table-wrap">
+              <table>
+                <thead><tr><th>Description</th><th>Client</th><th>Amount</th><th>Next due</th><th>Actions</th></tr></thead>
+                <tbody>
+                  {recurring.map((t) => {
+                    const due = recurringDueLabel(t.nextDueDate, today);
+                    return (
+                      <tr key={t.id}>
+                        <td data-label="Description">{t.description}</td>
+                        <td data-label="Client">{byId.get(t.clientId)?.name ?? "Unknown client"}</td>
+                        <td className="num" data-label="Amount">{formatMoney(computeInvoiceTotal({ ...t, dueDate: t.nextDueDate, id: t.id, issuedDate: today, number: null, status: "unpaid" }))}</td>
+                        <td data-label="Next due">
+                          {t.nextDueDate}{" "}
+                          {due.tone === "ok" ? (
+                            <span className="hint">{due.text}</span>
+                          ) : (
+                            <span className={`badge ${due.tone === "due" ? "badge-overdue" : "badge-unpaid"} badge-glow`}>{due.text}</span>
+                          )}
+                        </td>
+                        <td data-label="Actions">
+                          <div className="actions">
+                            <button disabled={generatingId === t.id} onClick={() => generateOne(t.id)} type="button">
+                              {generatingId === t.id ? "Generating…" : "Generate now"}
+                            </button>
+                            <button onClick={() => stopRecurring(t.id)} type="button">Stop</button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
             <div className="actions" style={{ marginTop: 12 }}>
               <button disabled={generating} onClick={generateDue} type="button">{generating ? "Generating…" : "Generate due now"}</button>
             </div>
@@ -386,36 +499,92 @@ export default function InvoicesClient({
             <tbody>
               {paged.map((inv) => {
                 const overdue = isOverdue(inv, today);
+                const balance = remaining.get(inv.id) ?? 0;
                 return (
-                  <tr key={inv.id}>
-                    <td data-label="Number">{formatInvoiceNumber(inv.number)}</td>
-                    <td data-label="Client">{byId.get(inv.clientId)?.name ?? "Unknown client"}</td>
-                    <td data-label="Description">{inv.description}</td>
-                    <td data-label="Items">{inv.items && inv.items.length > 0 ? `${inv.items.length} item${inv.items.length === 1 ? "" : "s"}` : "—"}</td>
-                    <td data-label="Amount">{formatMoney(inv.amount)}</td>
-                    <td data-label="Total">{formatMoney(computeInvoiceTotal(inv))}</td>
-                    <td data-label="Status">
-                      <StatusBadge status={overdue ? "overdue" : inv.status} />
-                    </td>
-                    <td data-label="Issued">{inv.issuedDate}</td>
-                    <td data-label="Due">{inv.dueDate}</td>
-                    <td data-label="Actions">
-                      <div className="actions">
-                        <Link className="btn" href={`/invoices/${inv.id}`}>View</Link>
-                        <button onClick={() => togglePaid(inv)}>
-                          {inv.status === "paid" ? "Mark unpaid" : "Mark paid"}
-                        </button>
-                        {confirmDeleteId === inv.id ? (
-                          <>
-                            <button className="danger" onClick={() => deleteOne(inv.id)}>Confirm delete</button>
-                            <button onClick={() => setConfirmDeleteId(null)}>Cancel</button>
-                          </>
-                        ) : (
-                          <button className="danger" onClick={() => deleteOne(inv.id)}>Delete</button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                  <Fragment key={inv.id}>
+                    <tr>
+                      <td data-label="Number">{formatInvoiceNumber(inv.number)}</td>
+                      <td data-label="Client">{byId.get(inv.clientId)?.name ?? "Unknown client"}</td>
+                      <td data-label="Description">{inv.description}</td>
+                      <td data-label="Items">{inv.items && inv.items.length > 0 ? `${inv.items.length} item${inv.items.length === 1 ? "" : "s"}` : "—"}</td>
+                      <td className="num" data-label="Amount">{formatMoney(inv.amount)}</td>
+                      <td className="num" data-label="Total">{formatMoney(computeInvoiceTotal(inv))}</td>
+                      <td data-label="Status">
+                        <StatusBadge status={overdue ? "overdue" : inv.status} />
+                      </td>
+                      <td data-label="Issued">{inv.issuedDate}</td>
+                      <td data-label="Due">{inv.dueDate}</td>
+                      <td data-label="Actions">
+                        <div className="actions">
+                          <Link className="btn" href={`/invoices/${inv.id}`}>View</Link>
+                          {balance > 0 && (
+                            <button onClick={() => (payForId === inv.id ? setPayForId(null) : openPay(inv))} type="button">
+                              {payForId === inv.id ? "Close" : "Record payment"}
+                            </button>
+                          )}
+                          {overdue && balance > 0 && (
+                            <button onClick={() => setRemindForId(remindForId === inv.id ? null : inv.id)} type="button">
+                              {remindForId === inv.id ? "Close reminder" : "Draft reminder"}
+                            </button>
+                          )}
+                          <button onClick={() => togglePaid(inv)}>
+                            {inv.status === "paid" ? "Mark unpaid" : "Mark paid"}
+                          </button>
+                          {confirmDeleteId === inv.id ? (
+                            <>
+                              <button className="danger" onClick={() => deleteOne(inv.id)}>Confirm delete</button>
+                              <button onClick={() => setConfirmDeleteId(null)}>Cancel</button>
+                            </>
+                          ) : (
+                            <button className="danger" onClick={() => deleteOne(inv.id)}>Delete</button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {payForId === inv.id && (
+                      <tr key={`${inv.id}-pay`}>
+                        <td colSpan={10}>
+                          <form className="grid" onSubmit={(e) => submitPay(e, inv)}>
+                            <p className="hint full" style={{ margin: 0 }}>
+                              Recording a payment for {formatInvoiceNumber(inv.number)} — {formatMoney(balance)} still owed.
+                            </p>
+                            <label>Amount ($) *
+                              <input type="number" min="0" step="0.01" inputMode="decimal" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
+                            </label>
+                            <label>Paid on
+                              <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
+                            </label>
+                            <label>Method — optional
+                              <input value={payMethod} onChange={(e) => setPayMethod(e.target.value)} placeholder="Bank transfer" />
+                            </label>
+                            <label>Reference — optional
+                              <input value={payReference} onChange={(e) => setPayReference(e.target.value)} placeholder="INV-123" />
+                            </label>
+                            {payError && <p className="error full" role="alert">{payError}</p>}
+                            <div className="actions full">
+                              <button className="primary" disabled={paySaving} type="submit">{paySaving ? "Saving…" : "Record payment"}</button>
+                              <button onClick={() => setPayForId(null)} type="button">Cancel</button>
+                            </div>
+                          </form>
+                        </td>
+                      </tr>
+                    )}
+                    {remindForId === inv.id && (
+                      <tr key={`${inv.id}-remind`}>
+                        <td colSpan={10}>
+                          <ReminderDraft
+                            balance={balance}
+                            clientName={byId.get(inv.clientId)?.name ?? "Unknown client"}
+                            dueDate={inv.dueDate}
+                            invoiceNumber={formatInvoiceNumber(inv.number)}
+                            paid={computeAmountPaid(payments.filter((p) => p.invoiceId === inv.id))}
+                            today={today}
+                            total={computeInvoiceTotal(inv)}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
             </tbody>

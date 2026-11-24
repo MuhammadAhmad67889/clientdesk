@@ -38,7 +38,7 @@ export default function ForgotPasswordForm() {
     );
   }
   return (
-    <form className="card grid" onSubmit={submit}>
+    <form className="card glass grid" onSubmit={submit}>
       <label className="full">Email
         <input autoComplete="email" onChange={(e) => setEmail(e.target.value)} required type="email" value={email} />
       </label>

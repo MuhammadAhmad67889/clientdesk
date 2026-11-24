@@ -35,7 +35,7 @@ export default function BillingSection({
 
   if (!billingConfigured) {
     return (
-      <div className="card">
+      <div className="card glass">
         <h2>Billing</h2>
         <p className="hint" style={{ marginBottom: 0 }}>
           Billing is not set up yet. Pro checkout opens once Stripe is
@@ -48,7 +48,7 @@ export default function BillingSection({
 
   if (plan === "pro" || plan === "business") {
     return (
-      <div className="card">
+      <div className="card glass">
         <h2>Billing</h2>
         <p style={{ margin: 0 }}>
           You are on <strong>{plan === "pro" ? "Pro" : "Business"}</strong>
@@ -68,7 +68,7 @@ export default function BillingSection({
   }
 
   return (
-    <div className="card">
+    <div className="card glass">
       <h2>Billing</h2>
       <p style={{ margin: 0 }}>
         You are on the <strong>Free</strong> plan.

@@ -110,7 +110,7 @@ export default function WebhooksForm() {
   }
 
   return (
-    <div className="card grid">
+    <div className="card glass grid">
       <h2 className="full" style={{ margin: 0 }}>Webhooks (Zapier)</h2>
       <p className="hint full" style={{ margin: 0 }}>
         ClientDesk posts a small JSON payload to your webhook URL whenever
