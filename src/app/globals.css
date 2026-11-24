@@ -35,15 +35,25 @@
   --gradient: linear-gradient(135deg, #2563eb, #7c3aed);
   --radius: 20px;
   --radius-sm: 12px;
+  /* Futuristic material: frosted glass, blue glow, aurora washes.
+   * Light theme keeps them airy; dark theme makes them the hero. */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glow: rgba(37, 99, 235, 0.35);
+  --glow-soft: rgba(37, 99, 235, 0.14);
+  --aurora-1: rgba(37, 99, 235, 0.10);
+  --aurora-2: rgba(124, 58, 237, 0.08);
 }
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0a0f1e;
-  --surface: #101828;
-  --surface-2: #1a2436;
+  /* Deep-space dark: near-black blue-tinted surfaces, electric-blue
+   * glow. This is the hero theme of the redesign. */
+  --bg: #070b16;
+  --surface: #0d1526;
+  --surface-2: #141f36;
   --text: #f1f5f9;
   --text-2: #94a3b8;
-  --border: #1f2a3d;
+  --border: #1e2c47;
   --primary: #60a5fa;
   --primary-hover: #93c5fd;
   --primary-soft: #1e3a5f;
@@ -55,10 +65,18 @@
   --warning-soft: #451a03;
   --error: #f87171;
   --error-soft: #450a0a;
-  --sidebar-bg: #0f172a;
-  --topbar-bg: rgba(10, 15, 30, 0.85);
+  --sidebar-bg: #0a1120;
+  --topbar-bg: rgba(7, 11, 22, 0.82);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.5);
+  /* Futuristic material, dark values: glass is a dark frost,
+   * glow is stronger so it reads on near-black. */
+  --glass-bg: rgba(13, 21, 38, 0.72);
+  --glass-border: rgba(148, 163, 184, 0.14);
+  --glow: rgba(96, 165, 250, 0.45);
+  --glow-soft: rgba(96, 165, 250, 0.18);
+  --aurora-1: rgba(37, 99, 235, 0.16);
+  --aurora-2: rgba(124, 58, 237, 0.12);
 }
 
 body {
@@ -70,6 +88,13 @@ body {
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Ambient aurora wash behind everything: blue top-right, violet
+   * bottom-left, fixed so it never scrolls away. Subtle on light,
+   * the deep-space feel on dark. */
+  background-image:
+    radial-gradient(800px 420px at 85% -10%, var(--aurora-1), transparent 60%),
+    radial-gradient(640px 360px at -10% 110%, var(--aurora-2), transparent 60%);
+  background-attachment: fixed;
 }
 a { color: var(--primary-text); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -905,4 +930,87 @@ input::placeholder, textarea::placeholder { color: var(--text-2); opacity: 0.8; 
   .bottom-nav-item { min-height: 48px; }
   .nav-item { padding: 11px 10px; }
   .public-wrap section > h2 { font-size: 1.4rem; margin-top: 36px; }
+}
+
+/* ---------- Futuristic redesign — Phase 1 (2026-11-24) ----------
+ * New material classes only. Nothing above is removed or renamed,
+ * so every existing screen keeps working. Pages opt in by adding
+ * these classes (glass, glow, gradient-border, num, micro-label);
+ * the token values above do the theme work. */
+
+/* Frosted glass: translucent surface + blur + soft border. Use on
+ * stat cards, dialogs, and floating panels — never on dense tables. */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow);
+}
+/* A card that is also glass: same padding/margin as .card. */
+.card.glass { background: var(--glass-bg); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); border-color: var(--glass-border); }
+
+/* Blue glow for primary actions and active states. */
+.glow { box-shadow: 0 0 24px var(--glow); }
+.glow-soft { box-shadow: 0 0 16px var(--glow-soft); }
+
+/* Gradient border: a 1px blue->violet edge around a solid surface.
+ * Use sparingly — hero cards and the featured price tier only. */
+.gradient-border {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--gradient) border-box;
+}
+
+/* Tabular numerals for money and totals (also on .stat strong). */
+.num { font-variant-numeric: tabular-nums; }
+
+/* Uppercase micro-label with tracking — the same treatment as
+ * .stat span, reusable outside stat cards. */
+.micro-label {
+  display: block;
+  color: var(--text-2);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Status chips with a soft glow, so state reads at a glance. */
+.badge-glow { box-shadow: 0 0 12px var(--glow-soft); }
+
+/* Primary buttons get a glow shadow and a small lift on hover.
+ * The solid blue fill is unchanged, so dark-theme text contrast
+ * (dark text on light blue) stays exactly as it was. */
+button.primary, .btn-primary { box-shadow: 0 1px 2px rgba(37, 99, 235, 0.4), 0 0 16px var(--glow-soft); }
+button.primary:hover, .btn-primary:hover { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35), 0 0 24px var(--glow-soft); transform: translateY(-1px); }
+
+/* Glass topbar with a stronger blur and a faint gradient hairline. */
+.topbar {
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  box-shadow: 0 1px 0 var(--glow-soft);
+}
+
+/* Active nav item: soft gradient wash + accent bar + faint glow. */
+.nav-item.active {
+  background: linear-gradient(90deg, var(--primary-soft), transparent 85%);
+  box-shadow: inset 3px 0 0 var(--primary), 0 0 16px var(--glow-soft);
+}
+
+/* Glass dialogs: frosted card over the dimmed backdrop. */
+.dialog { background: var(--glass-bg); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
+
+/* Stat cards lift a little further on hover now that the glow
+ * exists; the base .stat rule above still owns the layout. */
+.stat:hover { box-shadow: var(--shadow-lg), 0 0 24px var(--glow-soft); }
+
+/* Gradient text for big numbers only — never body copy. */
+.gradient-num {
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
