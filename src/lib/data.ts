@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { hashEquals, hashToken, SESSION_COOKIE, verifySessionCookie } from "./auth";
 import { recordAudit } from "./audit";
 import { getPrisma } from "./prisma";
@@ -156,8 +157,10 @@ function toRecurring(row: {
   };
 }
 
-/** Resolve the logged-in user from the signed session cookie. Null when absent/invalid/expired. */
-export async function getSessionUser(
+/** Resolve the logged-in user from the signed session cookie. Null when absent/invalid/expired.
+ * Cached per request: the layout and the page both ask, and the answer is
+ * the same within one request — so the database is hit at most once. */
+export const getSessionUser = cache(async function getSessionUser(
   db: PrismaClient = getPrisma(),
 ): Promise<SessionUser | null> {
   let cookieValue: string | undefined;
@@ -182,7 +185,7 @@ export async function getSessionUser(
   } catch {
     return null;
   }
-}
+});
 
 /** A user's plan plus how many clients and invoices they already have. */
 export async function getUsage(

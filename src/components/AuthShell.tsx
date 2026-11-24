@@ -1,8 +1,13 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Reveal from "./Reveal";
-import ThreeScene from "./ThreeScene";
+
+// The 3D globe is decoration only, and three.js is ~550KB of JavaScript.
+// Load it after the form paints instead of blocking the first paint with
+// it — the aside already has its gradient background, so nothing shifts.
+const ThreeScene = dynamic(() => import("./ThreeScene"), { ssr: false });
 
 export default function AuthShell({
   children,
