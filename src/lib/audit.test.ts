@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { describe, expect, it } from "vitest";
-import { listAuditEntries, recordAudit } from "./audit";
+import { auditActionLabel, listAuditEntries, recordAudit } from "./audit";
 
 function stubDb(entries: { action: string; createdAt: Date; detail: string | null }[]) {
   return {
@@ -39,6 +39,16 @@ describe("recordAudit", () => {
   });
 });
 
+describe("auditActionLabel", () => {
+  it("turns stored actions into plain words", () => {
+    expect(auditActionLabel("invoice.created")).toBe("Invoice created");
+    expect(auditActionLabel("payment.recorded")).toBe("Payment recorded");
+    expect(auditActionLabel("recurring.deleted")).toBe("Recurring invoice stopped");
+  });
+  it("falls back to the stored action when it has no label", () => {
+    expect(auditActionLabel("something.new")).toBe("something.new");
+  });
+});
 describe("listAuditEntries", () => {
   it("returns newest first with plain dates and no null details", async () => {
     const rows = [

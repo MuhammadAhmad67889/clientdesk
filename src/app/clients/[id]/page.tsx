@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import Reveal from "../../../components/Reveal";
 import { StatusBadge } from "../../../components/ui";
 import { getSessionUser, listClients, listInvoices, listPayments } from "../../../lib/data";
-import { computeClientTotals, formatMoney, isOverdue, todayIso } from "../../../lib/invoices";
+import { computeClientTotals, formatMoney, isOverdue, summarizeClientHealth, todayIso } from "../../../lib/invoices";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const today = todayIso();
   const mineIds = new Set(mine.map((i) => i.id));
   const totals = computeClientTotals(mine, payments.filter((p) => mineIds.has(p.invoiceId)), today);
+  const health = summarizeClientHealth(mine, payments, today);
 
   return (
     <Reveal>
@@ -26,6 +27,25 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         <p style={{ margin: 0 }}><Link href="/clients"><ArrowLeft aria-hidden="true" className="icon-inline" size={14} /> All clients</Link></p>
         <h1 style={{ marginTop: 8 }}>{client.name}</h1>
         <p className="lead">{client.company ?? "No company listed"} · Client since {client.createdAt}</p>
+      </div>
+      <div className="card glass" data-reveal>
+        <div className="card-head">
+          <h2 style={{ margin: 0 }}>Health</h2>
+          {health.health === "on-track" ? (
+            <span className="badge badge-paid badge-glow">On track</span>
+          ) : (
+            <span className="badge badge-overdue badge-glow">Needs attention</span>
+          )}
+        </div>
+        <p style={{ margin: 0 }}>
+          {health.health === "on-track"
+            ? "Nothing overdue."
+            : `${totals.overdueCount} overdue invoice${totals.overdueCount === 1 ? "" : "s"} · ${formatMoney(totals.overdueAmount)} overdue.`}{" "}
+          {health.paidCount} of {health.invoiceCount} invoice{health.invoiceCount === 1 ? "" : "s"} fully paid.
+        </p>
+        <p className="hint" style={{ marginBottom: 0 }}>
+          Last invoice {health.lastInvoiceDate ?? "—"} · Last payment {health.lastPaymentDate ?? "—"}
+        </p>
       </div>
       <div className="two-col">
         <div className="card">

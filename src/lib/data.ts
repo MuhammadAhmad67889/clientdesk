@@ -435,6 +435,45 @@ export async function deleteRecurringTemplate(userId: string, id: string, db: Pr
 }
 
 /**
+ * Create one invoice from one template and advance the template by
+ * one month. Shared by the bulk "generate due" run and the
+ * per-template "Generate now" button, so both paths make the same
+ * invoice, audit entry, and webhook call.
+ */
+async function createInvoiceFromTemplate(
+  userId: string,
+  t: RecurringTemplate,
+  today: string,
+  db: PrismaClient,
+): Promise<Invoice> {
+  const invoice = await db.invoice.create({
+    data: {
+      amount: t.amount,
+      clientId: t.clientId,
+      description: t.description,
+      discountRate: t.discountRate,
+      dueDate: t.nextDueDate,
+      issuedDate: today,
+      number: await nextInvoiceNumber(userId, db),
+      status: "unpaid",
+      taxRate: t.taxRate,
+      userId,
+    },
+  });
+  await db.recurringTemplate.update({
+    data: { nextDueDate: addMonths(t.nextDueDate, 1) },
+    where: { id: t.id },
+  });
+  await recordAudit(userId, "invoice.created", t.description, db);
+  const generated = toInvoice(invoice);
+  const client = await invoiceClient(userId, generated.clientId, db);
+  if (client) {
+    await notifyWebhooks(userId, "invoice.created", webhookInvoiceData(generated, client), db);
+  }
+  return generated;
+}
+
+/**
  * Generate one invoice per due template, then advance each template by
  * one month. One invoice per run on purpose: a template months overdue
  * never surprises the user with a bulk of backdated invoices at once.
@@ -447,33 +486,26 @@ export async function generateDueRecurring(
   const templates = await listRecurringTemplates(userId, db);
   const created: Invoice[] = [];
   for (const t of dueTemplates(templates, today)) {
-    const invoice = await db.invoice.create({
-      data: {
-        amount: t.amount,
-        clientId: t.clientId,
-        description: t.description,
-        discountRate: t.discountRate,
-        dueDate: t.nextDueDate,
-        issuedDate: today,
-        number: await nextInvoiceNumber(userId, db),
-        status: "unpaid",
-        taxRate: t.taxRate,
-        userId,
-      },
-    });
-    await db.recurringTemplate.update({
-      data: { nextDueDate: addMonths(t.nextDueDate, 1) },
-      where: { id: t.id },
-    });
-    await recordAudit(userId, "invoice.created", t.description, db);
-    const generated = toInvoice(invoice);
-    const client = await invoiceClient(userId, generated.clientId, db);
-    if (client) {
-      await notifyWebhooks(userId, "invoice.created", webhookInvoiceData(generated, client), db);
-    }
-    created.push(generated);
+    created.push(await createInvoiceFromTemplate(userId, t, today, db));
   }
   return created;
+}
+
+/**
+ * Generate one invoice from one template right now, even when its next
+ * due date has not arrived yet. The template still advances one month,
+ * so pressing it twice never makes two invoices for the same period.
+ * Returns null when the template is not the user's.
+ */
+export async function generateOneRecurring(
+  userId: string,
+  templateId: string,
+  today: string,
+  db: PrismaClient = getPrisma(),
+): Promise<Invoice | null> {
+  const template = await db.recurringTemplate.findFirst({ where: { id: templateId, userId } });
+  if (!template) return null;
+  return createInvoiceFromTemplate(userId, toRecurring(template), today, db);
 }
 
 export async function listPaymentsForInvoice(userId: string, invoiceId: string, db: PrismaClient = getPrisma()): Promise<Payment[]> {

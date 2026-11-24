@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addMonths, dueTemplates } from "./recurring";
+import { addMonths, dueTemplates, recurringDueLabel } from "./recurring";
 import type { RecurringTemplate } from "./types";
 
 function template(partial: Partial<RecurringTemplate> & { id: string }): RecurringTemplate {
@@ -40,5 +40,20 @@ describe("dueTemplates", () => {
       template({ id: "future", nextDueDate: "2026-11-02" }),
     ];
     expect(dueTemplates(templates, "2026-11-01").map((t) => t.id)).toEqual(["past", "today"]);
+  });
+});
+
+describe("recurringDueLabel", () => {
+  it("says overdue for past due dates", () => {
+    expect(recurringDueLabel("2026-10-30", "2026-11-01")).toEqual({ text: "Overdue by 2 days", tone: "due" });
+    expect(recurringDueLabel("2026-10-31", "2026-11-01")).toEqual({ text: "Overdue by 1 day", tone: "due" });
+  });
+  it("says due today and tomorrow", () => {
+    expect(recurringDueLabel("2026-11-01", "2026-11-01")).toEqual({ text: "Due today", tone: "due" });
+    expect(recurringDueLabel("2026-11-02", "2026-11-01")).toEqual({ text: "Due tomorrow", tone: "soon" });
+  });
+  it("says due in N days, soon within a week", () => {
+    expect(recurringDueLabel("2026-11-05", "2026-11-01")).toEqual({ text: "Due in 4 days", tone: "soon" });
+    expect(recurringDueLabel("2026-11-20", "2026-11-01")).toEqual({ text: "Due in 19 days", tone: "ok" });
   });
 });

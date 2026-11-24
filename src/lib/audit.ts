@@ -23,6 +23,31 @@ export async function recordAudit(
   }
 }
 
+/** Plain words for the audit actions stored in the database, shared
+ * by every page that shows the activity feed. Unknown actions fall
+ * back to the stored action string itself, so a new action never
+ * renders as a blank row. */
+const auditLabels: Record<string, string> = {
+  "client.archived": "Client archived",
+  "client.created": "Client added",
+  "client.deleted": "Client deleted",
+  "client.unarchived": "Client unarchived",
+  "client.updated": "Client updated",
+  "invoice.created": "Invoice created",
+  "invoice.deleted": "Invoice deleted",
+  "invoice.paid": "Invoice marked paid",
+  "invoice.unpaid": "Invoice marked unpaid",
+  "invoice.updated": "Invoice updated",
+  "payment.deleted": "Payment deleted",
+  "payment.recorded": "Payment recorded",
+  "recurring.created": "Recurring invoice added",
+  "recurring.deleted": "Recurring invoice stopped",
+};
+
+export function auditActionLabel(action: string): string {
+  return auditLabels[action] ?? action;
+}
+
 /** The user's most recent audit entries, newest first. */
 export async function listAuditEntries(
   userId: string,

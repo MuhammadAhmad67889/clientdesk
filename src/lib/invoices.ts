@@ -19,6 +19,11 @@ export function isOverdue(invoice: Invoice, today: string): boolean {
 }
 
 /**
+ * Total due for one invoice: discount first, then tax on the discounted
+ * amount, rounded to cents. With 0% tax and 0% discount this is just
+ * the amount, so old invoices are unaffected.
+ */
+/**
  * Total due for one amount: discount first, then tax on the discounted
  * amount, rounded to cents. The invoice version below is just this
  * with the invoice's own figures, so the landing-page calculator and
@@ -263,6 +268,44 @@ export function computeClientTotals(
     totalBilled: roundMoney(totalBilled),
     totalOutstanding: roundMoney(totalOutstanding),
     totalPaid: roundMoney(totalPaid),
+  };
+}
+
+export interface ClientHealth {
+  /** "needs-attention" only ever means real overdue money exists. */
+  health: "needs-attention" | "on-track";
+  invoiceCount: number;
+  lastInvoiceDate: string | null;
+  lastPaymentDate: string | null;
+  paidCount: number;
+}
+
+/** A client's health, from their real invoices and payments only:
+ * when they were last billed and last paid, how many invoices are
+ * fully paid, and whether anything is overdue. */
+export function summarizeClientHealth(
+  invoices: Invoice[],
+  payments: Payment[],
+  today: string,
+): ClientHealth {
+  const totals = computeClientTotals(invoices, payments, today);
+  const mineIds = new Set(invoices.map((i) => i.id));
+  const minePayments = payments.filter((p) => mineIds.has(p.invoiceId));
+  const paidCount = invoices.filter(
+    (inv) => computeRemainingBalance(inv, payments.filter((p) => p.invoiceId === inv.id)) <= 0,
+  ).length;
+  const lastInvoiceDate = invoices.length === 0
+    ? null
+    : invoices.map((i) => i.issuedDate).sort().at(-1) ?? null;
+  const lastPaymentDate = minePayments.length === 0
+    ? null
+    : minePayments.map((p) => p.paidAt).sort().at(-1) ?? null;
+  return {
+    health: totals.overdueCount > 0 ? "needs-attention" : "on-track",
+    invoiceCount: invoices.length,
+    lastInvoiceDate,
+    lastPaymentDate,
+    paidCount,
   };
 }
 

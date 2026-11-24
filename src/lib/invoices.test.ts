@@ -5,6 +5,7 @@ import {
   buildDuplicateInput,
   computeClientTotals,
   outstandingByClient,
+  summarizeClientHealth,
   computeRemainingBalance,
   computeInvoiceTotal,
   formatInvoiceNumber,
@@ -175,6 +176,48 @@ describe("computeClientTotals", () => {
       "2026-10-29",
     );
     expect(totals).toEqual({ overdueAmount: 200, overdueCount: 1, totalBilled: 600, totalOutstanding: 500, totalPaid: 100 });
+  });
+});
+
+describe("summarizeClientHealth", () => {
+  const payments = [
+    { amount: 100, id: "p1", invoiceId: "1", paidAt: "2026-10-20", userId: "u1" },
+  ];
+  it("is on-track with no overdue money, and reports last dates and paid count", () => {
+    const health = summarizeClientHealth(
+      [inv({ amount: 100, id: "1", issuedDate: "2026-10-10" }), inv({ amount: 200, id: "2", issuedDate: "2026-10-15" })],
+      payments,
+      "2026-10-29",
+    );
+    expect(health).toEqual({
+      health: "on-track",
+      invoiceCount: 2,
+      lastInvoiceDate: "2026-10-15",
+      lastPaymentDate: "2026-10-20",
+      paidCount: 1,
+    });
+  });
+  it("needs attention when an invoice is overdue with a balance", () => {
+    const health = summarizeClientHealth(
+      [inv({ amount: 400, dueDate: "2026-10-01", id: "1" })],
+      payments,
+      "2026-10-29",
+    );
+    expect(health.health).toBe("needs-attention");
+  });
+  it("is on-track with no invoices at all", () => {
+    expect(summarizeClientHealth([], [], "2026-10-29")).toEqual({
+      health: "on-track",
+      invoiceCount: 0,
+      lastInvoiceDate: null,
+      lastPaymentDate: null,
+      paidCount: 0,
+    });
+  });
+  it("ignores payments for other invoices", () => {
+    const health = summarizeClientHealth([inv({ amount: 100, id: "2" })], payments, "2026-10-29");
+    expect(health.lastPaymentDate).toBe(null);
+    expect(health.paidCount).toBe(0);
   });
 });
 

@@ -87,6 +87,13 @@ export function summarizePaymentRows(rows: PaymentRow[]): { pending: number; rec
   };
 }
 
+/** A fresh idempotency key per payment form, so a double-click on
+ * submit returns the first payment instead of recording it twice. */
+export function newIdempotencyKey(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+}
+
 /** The invoice total a payment form defaults to: what is still owed. */
 export function remainingByInvoice(
   invoices: Invoice[],
